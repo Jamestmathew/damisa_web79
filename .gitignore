@@ -17,3 +17,5 @@ out/
 
 # macOS
 .DS_Storetsconfig.tsbuildinfo
+tsconfig.tsbuildinfo
+*.save
