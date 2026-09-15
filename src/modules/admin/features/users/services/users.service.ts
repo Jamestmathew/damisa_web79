@@ -1,43 +1,167 @@
 import "server-only";
 
-import { authService } from "@/modules/auth/services";
-import type { AuthUser } from "@/modules/auth/types";
+import { createAdminClient } from "@/supabase/admin";
+import { requirePermission } from "@/shared/rbac";
 
 import type { AdminCreatableRole, AdminUserRow } from "../types";
 
-function isManageableByAdmin(
-  user: AuthUser,
-): user is AuthUser & { role: AdminUserRow["role"] } {
-  return user.role === "student" || user.role === "tutor";
+type ManagedProfile = {
+  id: string;
+  name: string;
+  role: AdminCreatableRole;
+  status: AdminUserRow["status"];
+  matric_number: string | null;
+  staff_id: string | null;
+  created_at: string;
+  office_id: string | null;
+};
+
+function generateTemporaryPassword() {
+  return `Welcome-${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
 }
 
-function toRow(user: AuthUser & { role: AdminUserRow["role"] }): AdminUserRow {
+/**
+ * Gets the office belonging to the currently authenticated Admin.
+ *
+ * The office is deliberately obtained from the database.
+ * It must never come from the browser/form submission.
+ */
+async function getCurrentAdminOfficeId(): Promise<
+  { ok: true; officeId: string } | { ok: false; error: string }
+> {
+  const user = await requirePermission("users:view_all");
+
+  const supabase = createAdminClient();
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, role, office_id")
+    .eq("id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      error: `Failed to load Admin profile: ${error.message}`,
+    };
+  }
+
+  if (!profile) {
+    return {
+      ok: false,
+      error: "Admin profile not found.",
+    };
+  }
+
+  if (!profile.office_id) {
+    return {
+      ok: false,
+      error: "Your Admin account is not assigned to an office.",
+    };
+  }
+
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    status: user.status,
-    matricNumber: user.matricNumber ?? null,
-    staffId: user.staffId ?? null,
-    createdAt: user.createdAt,
+    ok: true,
+    officeId: profile.office_id,
+  };
+}
+
+/**
+ * Verifies that a target user belongs to the current Admin's office
+ * and is either a Student or Tutor.
+ */
+async function getManagedUser(
+  id: string,
+): Promise<
+  | { ok: true; profile: ManagedProfile; officeId: string }
+  | { ok: false; error: string }
+> {
+  const officeResult = await getCurrentAdminOfficeId();
+
+  if (!officeResult.ok) {
+    return officeResult;
+  }
+
+  const supabase = createAdminClient();
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, name, role, status, matric_number, staff_id, created_at, office_id",
+    )
+    .eq("id", id)
+    .eq("office_id", officeResult.officeId)
+    .in("role", ["student", "tutor"])
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      error: `Failed to find user: ${error.message}`,
+    };
+  }
+
+  if (!profile) {
+    return {
+      ok: false,
+      error: "User not found or you do not have access to this user.",
+    };
+  }
+
+  return {
+    ok: true,
+    profile: profile as ManagedProfile,
+    officeId: officeResult.officeId,
   };
 }
 
 export async function getUsers(): Promise<AdminUserRow[]> {
-  const users = await authService.listUsers();
+  const officeResult = await getCurrentAdminOfficeId();
 
-  // Admin manages Student and Tutor accounts only.
-  // Admin accounts are managed exclusively by Super Admin.
-  return users.filter(isManageableByAdmin).map(toRow);
-}
+  if (!officeResult.ok) {
+    throw new Error(officeResult.error);
+  }
 
-/**
- * Generates a temporary password for the new account.
- * This is the initial credential given to the newly created user.
- */
-function generateTemporaryPassword() {
-  return `Welcome-${Math.random().toString(36).slice(2, 8)}`;
+  const supabase = createAdminClient();
+
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select(
+      "id, name, role, status, matric_number, staff_id, created_at, office_id",
+    )
+    .eq("office_id", officeResult.officeId)
+    .in("role", ["student", "tutor"])
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to load users: ${error.message}`);
+  }
+
+  const rows = await Promise.all(
+    ((profiles ?? []) as ManagedProfile[]).map(async (profile) => {
+      const { data, error: authError } = await supabase.auth.admin.getUserById(
+        profile.id,
+      );
+
+      if (authError) {
+        throw new Error(`Failed to load account details: ${authError.message}`);
+      }
+
+      return {
+        id: profile.id,
+        name: profile.name,
+        email: data.user?.email ?? "",
+        role: profile.role,
+        status: profile.status,
+        matricNumber: profile.matric_number,
+        staffId: profile.staff_id,
+        createdAt: profile.created_at,
+      };
+    }),
+  );
+
+  return rows;
 }
 
 export async function createUser(input: {
@@ -54,33 +178,90 @@ export async function createUser(input: {
       fieldErrors?: Partial<Record<string, string>>;
     }
 > {
+  const officeResult = await getCurrentAdminOfficeId();
+
+  if (!officeResult.ok) {
+    return officeResult;
+  }
+
+  const supabase = createAdminClient();
+
   const temporaryPassword = generateTemporaryPassword();
 
-  // Students without a supplied email still need a unique email-like
-  // identifier in the current mock auth store.
+  /*
+   * Students may omit an email.
+   *
+   * Supabase Auth still needs an identifier for the account, so we
+   * generate an internal email-like identifier from the matric number.
+   */
   const email =
-    input.email ||
-    `${(input.matricNumber ?? "")
-      .toLowerCase()
+    input.email.trim() ||
+    `${input.matricNumber
+      ?.toLowerCase()
       .replace(/[^a-z0-9]/g, "")}@students.local`;
 
-  const result = await authService.register({
-    name: input.name,
-    email,
-    password: temporaryPassword,
-    confirmPassword: temporaryPassword,
-    acceptTerms: true,
-    role: input.role,
-    status: "active",
-    matricNumber: input.matricNumber || null,
-    staffId: input.staffId || null,
-  });
-
-  if (!result.ok) {
+  if (input.role === "student" && !input.matricNumber?.trim()) {
     return {
       ok: false,
-      error: result.error,
-      fieldErrors: result.fieldErrors,
+      error: "Matric number is required for students.",
+    };
+  }
+
+  if (input.role === "tutor" && !input.staffId?.trim()) {
+    return {
+      ok: false,
+      error: "Staff ID is required for tutors.",
+    };
+  }
+
+  const { data, error } = await supabase.auth.admin.createUser({
+    email,
+    password: temporaryPassword,
+    email_confirm: true,
+    user_metadata: {
+      name: input.name,
+      matric_number: input.matricNumber?.trim() || null,
+      staff_id: input.staffId?.trim() || null,
+    },
+  });
+
+  if (error || !data.user) {
+    return {
+      ok: false,
+      error: error?.message ?? "Failed to create user account.",
+    };
+  }
+
+  const userId = data.user.id;
+
+  /*
+   * The database trigger creates the initial profile as a Student.
+   * We immediately configure the profile with the correct role and
+   * tenant information.
+   */
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      name: input.name.trim(),
+      role: input.role,
+      status: "active",
+      matric_number: input.matricNumber?.trim() || null,
+      staff_id: input.staffId?.trim() || null,
+      office_id: officeResult.officeId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
+
+  if (profileError) {
+    /*
+     * Do not leave an Auth account behind if its profile could not
+     * be configured.
+     */
+    await supabase.auth.admin.deleteUser(userId);
+
+    return {
+      ok: false,
+      error: `Account was created, but the profile could not be configured: ${profileError.message}`,
     };
   }
 
@@ -107,13 +288,83 @@ export async function updateUser(
       fieldErrors?: Partial<Record<string, string>>;
     }
 > {
-  const result = await authService.updateUserProfile(id, input);
+  const managedUser = await getManagedUser(id);
 
-  if (!result.ok) {
+  if (!managedUser.ok) {
+    return managedUser;
+  }
+
+  const supabase = createAdminClient();
+
+  if (input.role === "student" && !input.matricNumber?.trim()) {
     return {
       ok: false,
-      error: result.error,
-      fieldErrors: result.fieldErrors,
+      error: "Matric number is required for students.",
+    };
+  }
+
+  if (input.role === "tutor" && !input.staffId?.trim()) {
+    return {
+      ok: false,
+      error: "Staff ID is required for tutors.",
+    };
+  }
+
+  const authUpdate: {
+    email?: string;
+    user_metadata: {
+      name: string;
+      matric_number: string | null;
+      staff_id: string | null;
+    };
+  } = {
+    user_metadata: {
+      name: input.name.trim(),
+      matric_number: input.matricNumber?.trim() || null,
+      staff_id: input.staffId?.trim() || null,
+    },
+  };
+
+  if (input.email?.trim()) {
+    authUpdate.email = input.email.trim();
+  }
+
+  const { error: authError } = await supabase.auth.admin.updateUserById(
+    id,
+    authUpdate,
+  );
+
+  if (authError) {
+    return {
+      ok: false,
+      error: authError.message,
+    };
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      name: input.name.trim(),
+      role: input.role,
+      matric_number: input.matricNumber?.trim() || null,
+      staff_id: input.staffId?.trim() || null,
+      /*
+       * Keep the existing office.
+       *
+       * The Admin must never be able to move a managed user into
+       * another tenant through this update operation.
+       */
+      office_id: managedUser.officeId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("office_id", managedUser.officeId)
+    .in("role", ["student", "tutor"]);
+
+  if (profileError) {
+    return {
+      ok: false,
+      error: profileError.message,
     };
   }
 
@@ -124,9 +375,32 @@ export async function setUserStatus(
   id: string,
   status: AdminUserRow["status"],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const result = await authService.setUserStatus(id, status);
+  const managedUser = await getManagedUser(id);
 
-  return result.ok ? { ok: true } : { ok: false, error: result.error };
+  if (!managedUser.ok) {
+    return managedUser;
+  }
+
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("office_id", managedUser.officeId)
+    .in("role", ["student", "tutor"]);
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message,
+    };
+  }
+
+  return { ok: true };
 }
 
 export async function resetUserPassword(
@@ -134,17 +408,29 @@ export async function resetUserPassword(
 ): Promise<
   { ok: true; temporaryPassword: string } | { ok: false; error: string }
 > {
-  const result = await authService.adminResetPassword(id);
+  const managedUser = await getManagedUser(id);
 
-  if (!result.ok) {
+  if (!managedUser.ok) {
+    return managedUser;
+  }
+
+  const supabase = createAdminClient();
+
+  const temporaryPassword = generateTemporaryPassword();
+
+  const { error } = await supabase.auth.admin.updateUserById(id, {
+    password: temporaryPassword,
+  });
+
+  if (error) {
     return {
       ok: false,
-      error: result.error,
+      error: error.message,
     };
   }
 
   return {
     ok: true,
-    temporaryPassword: result.data.temporaryPassword,
+    temporaryPassword,
   };
 }
