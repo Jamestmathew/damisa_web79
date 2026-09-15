@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import {
   getConversations,
   getConversationById,

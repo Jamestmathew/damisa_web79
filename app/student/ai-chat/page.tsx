@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import { getConversations, ChatConversationList, AiChatDisabledNotice } from "@/modules/student/features/ai-chat";
 
 export const metadata: Metadata = { title: "AI Chat" };

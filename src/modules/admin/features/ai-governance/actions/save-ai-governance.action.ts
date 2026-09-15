@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/shared/rbac";
-import { updateAiGovernancePolicy } from "@/shared/ai";
+import { updateAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import { ADMIN_ROUTES } from "@/modules/admin/shared/constants";
 import { aiGovernanceFormSchema } from "../validation/ai-governance-form.schema";
 

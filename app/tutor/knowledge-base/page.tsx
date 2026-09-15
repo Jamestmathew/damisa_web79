@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ShieldOff } from "lucide-react";
 
 import { PageHeader, EmptyState } from "@/shared/components";
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import {
   getKnowledgeDocuments,
   UploadDocumentForm,

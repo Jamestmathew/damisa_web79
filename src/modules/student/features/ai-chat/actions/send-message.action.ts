@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { STUDENT_ROUTES } from "@/modules/student/shared/constants";
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import { sendMessage } from "../services/ai-chat.service";
 import type { SendMessageResult } from "../types";
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/shared/components";
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import { getPolicyDocuments, UploadPolicyForm, PoliciesTable } from "@/modules/super-admin/features/policies";
 
 export const metadata: Metadata = { title: "AI Policies" };

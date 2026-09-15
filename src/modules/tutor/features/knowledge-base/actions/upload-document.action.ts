@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/shared/rbac";
-import { getAiGovernancePolicy } from "@/shared/ai";
+import { getAiGovernancePolicy } from "@/shared/ai/services/ai-governance.service";
 import { TUTOR_ROUTES } from "@/modules/tutor/shared/constants";
 import { buildUploadSchema } from "../validation/upload.schema";
 import { uploadDocument } from "../services/knowledge-base.service";
