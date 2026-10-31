@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -15,8 +16,9 @@ const STATUS_PERMISSION = {
 
 export async function setUserStatusAction(
   id: string,
-  status: AccountStatus
+  status: AccountStatus,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["admin"]);
   await requirePermission(STATUS_PERMISSION[status]);
 
   const result = await setUserStatus(id, status);

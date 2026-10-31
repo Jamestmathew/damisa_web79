@@ -1,17 +1,22 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/shared/rbac";
 import { TUTOR_ROUTES } from "@/modules/tutor/shared/constants";
-import { addCourseModule, setCoursePublishStatus } from "@/modules/tutor/features/courses/services/courses.service";
+import {
+  addCourseModule,
+  setCoursePublishStatus,
+} from "@/modules/tutor/features/courses/services/courses.service";
 import { addModuleSchema } from "../validation/course-builder.schema";
 import type { CourseBuilderActionResult } from "./create-course.action";
 
 export async function addModuleAction(
   _prevState: CourseBuilderActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<CourseBuilderActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   const parsed = addModuleSchema.safeParse({
@@ -37,8 +42,9 @@ export async function addModuleAction(
 
 export async function toggleCoursePublishAction(
   courseId: string,
-  status: "published" | "draft"
+  status: "published" | "draft",
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   const result = await setCoursePublishStatus(courseId, status);

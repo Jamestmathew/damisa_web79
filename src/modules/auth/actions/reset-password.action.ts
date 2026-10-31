@@ -1,13 +1,17 @@
 "use server";
+import { RateLimitError } from "@/shared/security/rate-limit";
 
-import { AUTH_ERROR_MESSAGES, AUTH_SUCCESS_MESSAGES } from "@/modules/auth/constants";
+import {
+  AUTH_ERROR_MESSAGES,
+  AUTH_SUCCESS_MESSAGES,
+} from "@/modules/auth/constants";
 import { authService } from "@/modules/auth/services";
 import type { AuthActionState } from "@/modules/auth/types";
 import { resetPasswordSchema } from "@/modules/auth/validation/reset-password.schema";
 
 export async function resetPasswordAction(
   _prevState: AuthActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AuthActionState> {
   try {
     const parsed = resetPasswordSchema.safeParse({
@@ -34,8 +38,14 @@ export async function resetPasswordAction(
       return result;
     }
 
-    return { ok: true, data: undefined, message: AUTH_SUCCESS_MESSAGES.passwordReset };
-  } catch {
+    return {
+      ok: true,
+      data: undefined,
+      message: AUTH_SUCCESS_MESSAGES.passwordReset,
+    };
+  } catch (error) {
+    if (error instanceof RateLimitError)
+      return { ok: false, error: error.message };
     return { ok: false, error: AUTH_ERROR_MESSAGES.genericError };
   }
 }

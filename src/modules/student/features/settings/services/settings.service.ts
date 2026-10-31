@@ -1,45 +1,52 @@
 import "server-only";
-
+import { listRecords, saveRecord } from "@/shared/data/records";
+import { getContext } from "@/shared/security/context";
+import { createAdminClient } from "@/supabase/admin";
 import type {
   AppearancePreferences,
   NotificationPreferences,
   ProfilePreferences,
   StudentPreferences,
 } from "../types";
-
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function row() {
+  return (await listRecords<StudentPreferences>("preferences"))[0];
 }
-
-const preferences: StudentPreferences = {
-  profile: { displayName: "Demo User", bio: "" },
-  notifications: { emailNotifications: true, assignmentReminders: true, announcementAlerts: true },
-  appearance: { theme: "system", compactSidebar: false },
-};
-
 export async function getPreferences(): Promise<StudentPreferences> {
-  await delay();
-  return preferences;
+  const { user } = await getContext();
+  return (
+    (await row()) ?? {
+      profile: { displayName: user.name, bio: "" },
+      notifications: {
+        emailNotifications: true,
+        assignmentReminders: true,
+        announcementAlerts: true,
+      },
+      appearance: { theme: "system", compactSidebar: false },
+    }
+  );
 }
-
-export async function updateProfilePreferences(data: ProfilePreferences): Promise<{ ok: true }> {
-  await delay();
-  preferences.profile = data;
-  return { ok: true };
+async function update(input: Partial<StudentPreferences>) {
+  const current = await row();
+  const all = await getPreferences();
+  await saveRecord("preferences", { ...all, ...input }, current?.id);
+  return { ok: true as const };
 }
-
+export async function updateProfilePreferences(profile: ProfilePreferences) {
+  const { user } = await getContext();
+  const { error } = await createAdminClient()
+    .from("profiles")
+    .update({ name: profile.displayName, updated_at: new Date().toISOString() })
+    .eq("id", user.id);
+  if (error) throw new Error("Unable to update profile.");
+  return update({ profile });
+}
 export async function updateNotificationPreferences(
-  data: NotificationPreferences
-): Promise<{ ok: true }> {
-  await delay();
-  preferences.notifications = data;
-  return { ok: true };
+  notifications: NotificationPreferences,
+) {
+  return update({ notifications });
 }
-
 export async function updateAppearancePreferences(
-  data: AppearancePreferences
-): Promise<{ ok: true }> {
-  await delay();
-  preferences.appearance = data;
-  return { ok: true };
+  appearance: AppearancePreferences,
+) {
+  return update({ appearance });
 }

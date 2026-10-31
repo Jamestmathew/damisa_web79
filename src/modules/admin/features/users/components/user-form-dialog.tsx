@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Check } from "lucide-react";
 
@@ -115,7 +115,7 @@ export function UserFormDialog({
         },
   });
 
-  const role = form.watch("role");
+  const role = useWatch({ control: form.control, name: "role" });
 
   function onSubmit(values: UserFormSchema) {
     setState(null);

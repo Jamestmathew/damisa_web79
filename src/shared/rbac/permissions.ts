@@ -1,13 +1,16 @@
 import type { Permission, Role } from "./types";
 
-/**
- * The single source of truth for what each role can do. To extend for a
- * future Super Admin role: add `super_admin: [...]` here (typically every
- * permission, plus future platform-level ones) — no other file changes.
- */
+/** Central permissions for the four supported roles. */
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  student: ["students:view_profile", "payments:view_own", "ai:chat"],
+  student: [
+    "attendance:view_self",
+    "students:view_profile",
+    "payments:view_own",
+    "ai:chat",
+  ],
   tutor: [
+    "attendance:clock_self",
+    "attendance:view_self",
     "students:view_profile",
     "ai:manage_knowledge_base",
     "courses:manage_own",
@@ -18,6 +21,10 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "attendance:manage_own",
   ],
   admin: [
+    "attendance:approve_student_tutor",
+    "attendance:clock_self",
+    "attendance:students",
+    "attendance:view_self",
     "users:create",
     "users:edit",
     "users:activate",
@@ -35,6 +42,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "ai:manage_governance",
   ],
   super_admin: [
+    "attendance:approve_admin",
+    "attendance:staff",
+    "attendance:policy",
     "users:create",
     "users:edit",
     "users:activate",
@@ -50,6 +60,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "payments:verify",
     "payments:filter",
     "ai:manage_governance",
+    "students:delete",
+    "admins:delete",
     "admins:create",
     "admins:edit",
     "admins:activate",
@@ -64,6 +76,9 @@ export function hasPermission(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
-export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
+export function hasAnyPermission(
+  role: Role,
+  permissions: Permission[],
+): boolean {
   return permissions.some((permission) => hasPermission(role, permission));
 }

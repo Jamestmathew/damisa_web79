@@ -24,11 +24,15 @@ export function VerifyEmailStatus({ token }: VerifyEmailStatusProps) {
       const result = await verifyEmailAction(token);
       setState(result);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   if (!token) {
-    return <FormStatusMessage variant="error" message="This verification link is missing a token." />;
+    return (
+      <FormStatusMessage
+        variant="error"
+        message="This verification link is missing a token."
+      />
+    );
   }
 
   if (isPending || state === null) {
@@ -44,7 +48,11 @@ export function VerifyEmailStatus({ token }: VerifyEmailStatusProps) {
     <div className="space-y-4">
       <FormStatusMessage
         variant={state.ok ? "success" : "error"}
-        message={state.ok ? state.message ?? "Your email has been verified." : state.error}
+        message={
+          state.ok
+            ? (state.message ?? "Your email has been verified.")
+            : state.error
+        }
       />
       <Button asChild className="w-full">
         <Link href={AUTH_ROUTES.login}>Go to sign in</Link>

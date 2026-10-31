@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -20,10 +21,26 @@ import {
 } from "../validation/preferences.schema";
 import type { NotificationPreferences, SettingsActionResult } from "../types";
 
-const TOGGLES: { name: keyof NotificationPreferencesSchema; label: string; hint: string }[] = [
-  { name: "emailNotifications", label: "Email notifications", hint: "Get important updates in your inbox" },
-  { name: "assignmentReminders", label: "Assignment reminders", hint: "Reminders before assignments are due" },
-  { name: "announcementAlerts", label: "Announcement alerts", hint: "New announcements from your courses" },
+const TOGGLES: {
+  name: keyof NotificationPreferencesSchema;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    name: "emailNotifications",
+    label: "Email notifications",
+    hint: "Get important updates in your inbox",
+  },
+  {
+    name: "assignmentReminders",
+    label: "Assignment reminders",
+    hint: "Reminders before assignments are due",
+  },
+  {
+    name: "announcementAlerts",
+    label: "Announcement alerts",
+    hint: "New announcements from your courses",
+  },
 ];
 
 export function NotificationPreferencesForm({
@@ -34,7 +51,11 @@ export function NotificationPreferencesForm({
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<SettingsActionResult | null>(null);
 
-  const form = useForm<NotificationPreferencesSchema>({
+  const form = useForm<
+    z.input<typeof notificationPreferencesSchema>,
+    unknown,
+    NotificationPreferencesSchema
+  >({
     resolver: zodResolver(notificationPreferencesSchema),
     defaultValues: initialValues,
   });
@@ -61,7 +82,11 @@ export function NotificationPreferencesForm({
         />
       ) : null}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+      >
         {TOGGLES.map((toggle) => (
           <FormField
             key={toggle.name}
@@ -70,7 +95,9 @@ export function NotificationPreferencesForm({
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-md border border-border p-3">
                 <div>
-                  <FormLabel className="cursor-pointer">{toggle.label}</FormLabel>
+                  <FormLabel className="cursor-pointer">
+                    {toggle.label}
+                  </FormLabel>
                   <p className="text-xs text-muted-foreground">{toggle.hint}</p>
                 </div>
                 <FormControl>
@@ -86,7 +113,11 @@ export function NotificationPreferencesForm({
           />
         ))}
 
-        <LoadingButton type="submit" isLoading={isPending} loadingText="Saving...">
+        <LoadingButton
+          type="submit"
+          isLoading={isPending}
+          loadingText="Saving..."
+        >
           Save preferences
         </LoadingButton>
       </form>

@@ -10,6 +10,8 @@
 export type { Pagination, AsyncResult } from "@/shared/types";
 
 export interface CourseSummary {
+  coverPath?: string;
+  coverUrl?: string;
   id: string;
   title: string;
   code: string;
@@ -19,6 +21,11 @@ export interface CourseSummary {
   creditUnits: number;
 }
 
-export type SubmissionStatus = "not_submitted" | "submitted" | "graded" | "late" | "missed";
+export type SubmissionStatus =
+  | "not_submitted"
+  | "submitted"
+  | "graded"
+  | "late"
+  | "missed";
 
 export type ScheduleStatus = "upcoming" | "ongoing" | "completed" | "missed";

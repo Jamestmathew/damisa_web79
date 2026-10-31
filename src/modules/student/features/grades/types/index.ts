@@ -9,6 +9,9 @@ export interface CourseGradeRow {
 }
 
 export interface CourseGradeSummary {
+  provisional?: boolean;
+  caWeight?: number;
+  examWeight?: number;
   courseId: string;
   courseTitle: string;
   courseCode: string;

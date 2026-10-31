@@ -31,7 +31,10 @@ import {
 import { LoadingButton, FormStatusMessage } from "@/modules/auth/components/ui";
 
 import { saveClassAction } from "../actions/save-class.action";
-import { classFormSchema, type ClassFormSchema } from "../validation/class-form.schema";
+import {
+  classFormSchema,
+  type ClassFormSchema,
+} from "../validation/class-form.schema";
 import type { AdminClass, ClassActionResult } from "../types";
 
 interface ClassFormDialogProps {
@@ -41,7 +44,12 @@ interface ClassFormDialogProps {
   onSaved: () => void;
 }
 
-export function ClassFormDialog({ trigger, classItem, departmentNames, onSaved }: ClassFormDialogProps) {
+export function ClassFormDialog({
+  trigger,
+  classItem,
+  departmentNames,
+  onSaved,
+}: ClassFormDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<ClassActionResult | null>(null);
@@ -49,8 +57,19 @@ export function ClassFormDialog({ trigger, classItem, departmentNames, onSaved }
   const form = useForm<ClassFormSchema>({
     resolver: zodResolver(classFormSchema),
     defaultValues: classItem
-      ? { id: classItem.id, name: classItem.name, department: classItem.department, teacher: classItem.teacher, schedule: classItem.schedule }
-      : { name: "", department: departmentNames[0] ?? "", teacher: "", schedule: "" },
+      ? {
+          id: classItem.id,
+          name: classItem.name,
+          department: classItem.department,
+          teacher: classItem.teacher,
+          schedule: classItem.schedule,
+        }
+      : {
+          name: "",
+          department: departmentNames[0] ?? "",
+          teacher: "",
+          schedule: "",
+        },
   });
 
   function onSubmit(values: ClassFormSchema) {
@@ -68,7 +87,8 @@ export function ClassFormDialog({ trigger, classItem, departmentNames, onSaved }
 
       if (!result.ok && result.fieldErrors) {
         for (const [field, message] of Object.entries(result.fieldErrors)) {
-          if (message) form.setError(field as keyof ClassFormSchema, { message });
+          if (message)
+            form.setError(field as keyof ClassFormSchema, { message });
         }
         return;
       }
@@ -82,20 +102,34 @@ export function ClassFormDialog({ trigger, classItem, departmentNames, onSaved }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setState(null); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setState(null);
+      }}
+    >
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{classItem ? "Edit class" : "Add class"}</DialogTitle>
           <DialogDescription>
-            {classItem ? "Update this class's details." : "Create a new class section."}
+            {classItem
+              ? "Update this class's details."
+              : "Create a new class section."}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          {state && !state.ok ? <FormStatusMessage variant="error" message={state.error} /> : null}
+          {state && !state.ok ? (
+            <FormStatusMessage variant="error" message={state.error} />
+          ) : null}
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+            noValidate
+          >
             <FormField
               control={form.control}
               name="name"
@@ -156,14 +190,22 @@ export function ClassFormDialog({ trigger, classItem, departmentNames, onSaved }
                 <FormItem>
                   <FormLabel>Schedule</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Mon & Wed, 9:00 AM" {...field} />
+                    <Input
+                      placeholder="Mon & Wed, 09:00-10:00 | Main Hall"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <LoadingButton type="submit" className="w-full" isLoading={isPending} loadingText="Saving...">
+            <LoadingButton
+              type="submit"
+              className="w-full"
+              isLoading={isPending}
+              loadingText="Saving..."
+            >
               {classItem ? "Save changes" : "Create class"}
             </LoadingButton>
           </form>

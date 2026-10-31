@@ -1,4 +1,6 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
+import { requireRole } from "@/shared/rbac";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,8 +11,10 @@ import type { SettingsActionResult } from "../types";
 
 export async function updateNotificationsAction(
   _prevState: SettingsActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<SettingsActionResult> {
+  await authorizeAction(["student"]);
+  await requireRole(["student"]);
   try {
     const parsed = notificationPreferencesSchema.safeParse({
       emailNotifications: formData.get("emailNotifications") === "on",

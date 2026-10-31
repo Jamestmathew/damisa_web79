@@ -1,4 +1,6 @@
 "use server";
+import { redirect } from "next/navigation";
+import { RateLimitError } from "@/shared/security/rate-limit";
 
 import { AUTH_ERROR_MESSAGES } from "@/modules/auth/constants";
 import { authService } from "@/modules/auth/services";
@@ -10,6 +12,7 @@ export async function loginAction(
   _prevState: AuthActionState<{ redirectTo: string }>,
   formData: FormData,
 ): Promise<AuthActionState<{ redirectTo: string }>> {
+  let destination: string | undefined;
   try {
     const parsed = loginSchema.safeParse({
       identifier: formData.get("identifier"),
@@ -36,16 +39,14 @@ export async function loginAction(
       return result;
     }
 
-    return {
-      ok: true,
-      data: {
-        redirectTo: ROLE_HOME_PATH[result.data.user.role],
-      },
-    };
-  } catch {
+    destination = ROLE_HOME_PATH[result.data.user.role];
+  } catch (error) {
+    if (error instanceof RateLimitError)
+      return { ok: false, error: error.message };
     return {
       ok: false,
       error: AUTH_ERROR_MESSAGES.genericError,
     };
   }
+  redirect(destination!);
 }

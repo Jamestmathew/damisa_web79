@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -8,13 +9,19 @@ import { quizFormSchema } from "../validation/quiz-form.schema";
 import { createQuiz } from "../services/quizzes.service";
 import type { QuizActionResult } from "../types";
 
-export async function createQuizAction(payload: unknown): Promise<QuizActionResult> {
+export async function createQuizAction(
+  payload: unknown,
+): Promise<QuizActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("quizzes:manage_own");
 
   const parsed = quizFormSchema.safeParse(payload);
 
   if (!parsed.success) {
-    return { ok: false, error: "Please fix the errors in your quiz before saving." };
+    return {
+      ok: false,
+      error: "Please fix the errors in your quiz before saving.",
+    };
   }
 
   const result = await createQuiz(parsed.data);

@@ -1,4 +1,5 @@
 "use client";
+import { DeleteAccountButton } from "@/modules/super-admin/features/accounts/delete-account-button";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -99,6 +100,7 @@ export function AdminsManager({ admins }: { admins: AdminRow[] }) {
       className: "text-right",
       render: (admin) => (
         <div className="flex justify-end gap-1">
+          <DeleteAccountButton id={admin.id} name={admin.name} role="admin" />
           <AdminFormDialog
             admin={admin}
             onSaved={() => router.refresh()}

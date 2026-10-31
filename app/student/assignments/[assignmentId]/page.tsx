@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader, SubmissionStatusBadge } from "@/modules/student/shared/components";
+import {
+  PageHeader,
+  SubmissionStatusBadge,
+} from "@/modules/student/shared/components";
 import {
   getAssignmentById,
   AssignmentSubmissionForm,
@@ -16,7 +19,9 @@ interface AssignmentDetailsPageProps {
   params: Promise<{ assignmentId: string }>;
 }
 
-export default async function AssignmentDetailsPage({ params }: AssignmentDetailsPageProps) {
+export default async function AssignmentDetailsPage({
+  params,
+}: AssignmentDetailsPageProps) {
   const { assignmentId } = await params;
   const assignment = await getAssignmentById(assignmentId);
 
@@ -35,7 +40,9 @@ export default async function AssignmentDetailsPage({ params }: AssignmentDetail
           <div className="flex items-center gap-2">
             <Badge variant="outline">{assignment.maxScore} points</Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{assignment.instructions}</p>
+          <p className="text-sm text-muted-foreground">
+            {assignment.instructions}
+          </p>
         </CardContent>
       </Card>
 
@@ -47,7 +54,23 @@ export default async function AssignmentDetailsPage({ params }: AssignmentDetail
         />
       ) : null}
 
+      {!!assignment.attachments?.length && assignment.submissionId && (
+        <div className="space-y-2">
+          <h2 className="font-medium">Submitted files</h2>
+          {assignment.attachments.map((file, index) => (
+            <a
+              key={file.path}
+              className="block text-sm text-primary underline"
+              href={`/api/submissions/${assignment.submissionId}/files/${index}`}
+            >
+              {file.fileName}
+            </a>
+          ))}
+        </div>
+      )}
       <AssignmentSubmissionForm
+        existingAttachmentCount={assignment.attachments?.length ?? 0}
+        disabled={assignment.status === "graded"}
         assignmentId={assignment.id}
         existingSubmission={assignment.submissionText}
       />

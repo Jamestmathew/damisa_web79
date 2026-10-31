@@ -6,7 +6,7 @@ import { requireAuth } from "@/modules/auth/lib/route-guard";
 import type { AuthUser } from "@/modules/auth/types";
 
 import { hasPermission } from "./permissions";
-import type { Permission, Role } from "./types";
+import { ROLE_HOME_PATH, type Permission, type Role } from "./types";
 
 /**
  * Requires an authenticated user AND that their role is one of `roles`.
@@ -16,12 +16,12 @@ import type { Permission, Role } from "./types";
  */
 export async function requireRole(
   roles: Role[],
-  redirectTo = "/dashboard",
+  redirectTo?: string,
 ): Promise<AuthUser> {
   const user = await requireAuth();
 
   if (!roles.includes(user.role)) {
-    redirect(redirectTo);
+    redirect(redirectTo ?? ROLE_HOME_PATH[user.role]);
   }
 
   return user;
@@ -35,12 +35,12 @@ export async function requireRole(
  */
 export async function requirePermission(
   permission: Permission,
-  redirectTo = "/dashboard",
+  redirectTo?: string,
 ): Promise<AuthUser> {
   const user = await requireAuth();
 
   if (!hasPermission(user.role, permission)) {
-    redirect(redirectTo);
+    redirect(redirectTo ?? ROLE_HOME_PATH[user.role]);
   }
 
   return user;

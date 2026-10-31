@@ -33,6 +33,7 @@ export function SidebarNav({
 
         return (
           <Link
+            prefetch={false}
             key={item.href}
             href={item.href}
             onClick={onNavigate}

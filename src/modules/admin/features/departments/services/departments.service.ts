@@ -1,23 +1,15 @@
+import { listRecords, commitCollection } from "@/shared/data/collections";
 import "server-only";
 
 import type { Department } from "../types";
 
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 function generateId() {
-  return `dept_${Math.random().toString(36).slice(2, 9)}`;
+  return crypto.randomUUID();
 }
-
-const departments: Department[] = [
-  { id: "dept_1", name: "Computer Science", code: "CSC", headOfDepartment: "Dr. A. Bello", courseCount: 12, teacherCount: 8 },
-  { id: "dept_2", name: "General Studies", code: "GST", headOfDepartment: "Mrs. C. Okafor", courseCount: 6, teacherCount: 5 },
-  { id: "dept_3", name: "Accounting", code: "ACC", headOfDepartment: "Mr. B. Adeyemi", courseCount: 9, teacherCount: 6 },
-];
 
 export async function getDepartments(): Promise<Department[]> {
-  await delay();
+  const departments: Department[] = await listRecords<Department>("department");
+
   return [...departments];
 }
 
@@ -25,48 +17,79 @@ export async function createDepartment(input: {
   name: string;
   code: string;
   headOfDepartment: string;
-}): Promise<{ ok: true; department: Department } | { ok: false; error: string }> {
-  await delay();
+}): Promise<
+  { ok: true; department: Department } | { ok: false; error: string }
+> {
+  const departments: Department[] = await listRecords<Department>("department");
+  const before = structuredClone(departments);
+  const result = await (async (): Promise<
+    { ok: true; department: Department } | { ok: false; error: string }
+  > => {
+    if (
+      departments.some((d) => d.code.toLowerCase() === input.code.toLowerCase())
+    ) {
+      return {
+        ok: false,
+        error: "A department with this code already exists.",
+      };
+    }
 
-  if (departments.some((d) => d.code.toLowerCase() === input.code.toLowerCase())) {
-    return { ok: false, error: "A department with this code already exists." };
-  }
+    const department: Department = {
+      id: generateId(),
+      name: input.name,
+      code: input.code.toUpperCase(),
+      headOfDepartment: input.headOfDepartment,
+      courseCount: 0,
+      teacherCount: 0,
+    };
+    departments.push(department);
 
-  const department: Department = {
-    id: generateId(),
-    name: input.name,
-    code: input.code.toUpperCase(),
-    headOfDepartment: input.headOfDepartment,
-    courseCount: 0,
-    teacherCount: 0,
-  };
-  departments.push(department);
-
-  return { ok: true, department };
+    return { ok: true, department };
+  })();
+  if (result.ok) await commitCollection("department", before, departments);
+  return result;
 }
 
 export async function updateDepartment(
   id: string,
-  input: { name: string; code: string; headOfDepartment: string }
-): Promise<{ ok: true; department: Department } | { ok: false; error: string }> {
-  await delay();
-  const department = departments.find((d) => d.id === id);
+  input: { name: string; code: string; headOfDepartment: string },
+): Promise<
+  { ok: true; department: Department } | { ok: false; error: string }
+> {
+  const departments: Department[] = await listRecords<Department>("department");
+  const before = structuredClone(departments);
+  const result = await (async (): Promise<
+    { ok: true; department: Department } | { ok: false; error: string }
+  > => {
+    const department = departments.find((d) => d.id === id);
 
-  if (!department) return { ok: false, error: "Department not found." };
+    if (!department) return { ok: false, error: "Department not found." };
 
-  department.name = input.name;
-  department.code = input.code.toUpperCase();
-  department.headOfDepartment = input.headOfDepartment;
+    department.name = input.name;
+    department.code = input.code.toUpperCase();
+    department.headOfDepartment = input.headOfDepartment;
 
-  return { ok: true, department };
+    return { ok: true, department };
+  })();
+  if (result.ok) await commitCollection("department", before, departments);
+  return result;
 }
 
-export async function deleteDepartment(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  await delay();
-  const index = departments.findIndex((d) => d.id === id);
+export async function deleteDepartment(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const departments: Department[] = await listRecords<Department>("department");
+  const before = structuredClone(departments);
+  const result = await (async (): Promise<
+    { ok: true } | { ok: false; error: string }
+  > => {
+    const index = departments.findIndex((d) => d.id === id);
 
-  if (index === -1) return { ok: false, error: "Department not found." };
+    if (index === -1) return { ok: false, error: "Department not found." };
 
-  departments.splice(index, 1);
-  return { ok: true };
+    departments.splice(index, 1);
+    return { ok: true };
+  })();
+  if (result.ok) await commitCollection("department", before, departments);
+  return result;
 }

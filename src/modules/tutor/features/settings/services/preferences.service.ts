@@ -1,26 +1,19 @@
 import "server-only";
-
+import { listRecords, saveRecord } from "@/shared/data/records";
 import type { TutorPreferences } from "../types";
-
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-const preferences: TutorPreferences = {
-  emailOnSubmission: true,
-  emailOnAnnouncementReply: false,
-  weeklyDigest: true,
-};
-
 export async function getTutorPreferences(): Promise<TutorPreferences> {
-  await delay();
-  return { ...preferences };
+  return (
+    (await listRecords<TutorPreferences>("preferences"))[0] ?? {
+      emailOnSubmission: true,
+      emailOnAnnouncementReply: false,
+      weeklyDigest: true,
+    }
+  );
 }
-
 export async function updateTutorPreferences(
-  input: TutorPreferences
+  input: TutorPreferences,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  await delay();
-  Object.assign(preferences, input);
-  return { ok: true };
+  const existing = (await listRecords("preferences"))[0];
+  await saveRecord("preferences", input, existing?.id);
+  return { ok: true as const };
 }

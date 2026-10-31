@@ -11,14 +11,22 @@ import type { DataTableColumn } from "@/shared/types";
 import { deleteClassAction } from "../actions/delete-class.action";
 import type { AdminClass } from "../types";
 
+import {
+  ClassEnrollmentDialog,
+  type EnrollmentOption,
+} from "./class-enrollment-dialog";
 import { ClassFormDialog } from "./class-form-dialog";
 
 export function ClassesManager({
   classes,
   departmentNames,
+  students,
+  courses,
 }: {
   classes: AdminClass[];
   departmentNames: string[];
+  students: EnrollmentOption[];
+  courses: EnrollmentOption[];
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -27,7 +35,8 @@ export function ClassesManager({
     const q = query.trim().toLowerCase();
     if (!q) return classes;
     return classes.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.teacher.toLowerCase().includes(q)
+      (c) =>
+        c.name.toLowerCase().includes(q) || c.teacher.toLowerCase().includes(q),
     );
   }, [classes, query]);
 
@@ -51,6 +60,11 @@ export function ClassesManager({
       className: "text-right",
       render: (c) => (
         <div className="flex justify-end gap-1">
+          <ClassEnrollmentDialog
+            classItem={c}
+            students={students}
+            courses={courses}
+          />
           <ClassFormDialog
             classItem={c}
             departmentNames={departmentNames}
@@ -63,7 +77,11 @@ export function ClassesManager({
           />
           <ConfirmDialog
             trigger={
-              <Button variant="ghost" size="icon" aria-label={`Delete ${c.name}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Delete ${c.name}`}
+              >
                 <Trash2 className="size-4 text-destructive" />
               </Button>
             }

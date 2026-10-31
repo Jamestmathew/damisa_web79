@@ -2,7 +2,6 @@ import "server-only";
 
 import { AUTH_ERROR_MESSAGES } from "@/modules/auth/constants";
 import type {
-  AuthResult,
   AuthUser,
   ChangePasswordPayload,
   ForgotPasswordPayload,

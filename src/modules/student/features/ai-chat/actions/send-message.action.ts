@@ -1,4 +1,6 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
+import { requireRole } from "@/shared/rbac";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,12 +11,17 @@ import type { SendMessageResult } from "../types";
 
 export async function sendChatMessageAction(
   conversationId: string,
-  content: string
+  content: string,
 ): Promise<SendMessageResult> {
+  await authorizeAction(["student"]);
+  await requireRole(["student"]);
   const policy = await getAiGovernancePolicy();
 
   if (!policy.aiFeaturesEnabled || !policy.studentChatEnabled) {
-    return { ok: false, error: "AI Chat is currently disabled by your institution." };
+    return {
+      ok: false,
+      error: "AI Chat is currently disabled by your institution.",
+    };
   }
 
   if (!content.trim()) {

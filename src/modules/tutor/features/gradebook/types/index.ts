@@ -5,6 +5,10 @@ export interface GradebookRow {
   assignmentAvg: number | null;
   quizAvg: number | null;
   examScore: number | null;
+  caPercent?: number | null;
+  provisional?: boolean;
+  hasMarks?: boolean;
+  hasOverride?: boolean;
   overallPercent: number;
   letterGrade: string;
 }

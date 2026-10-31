@@ -9,10 +9,15 @@ import { DataTable, EntityToolbar, ConfirmDialog } from "@/shared/components";
 import { ApprovalStatusBadge } from "@/modules/admin/shared/components";
 import type { DataTableColumn } from "@/shared/types";
 
+import { CreateAdmissionDialog } from "./create-admission-dialog";
 import { setAdmissionStatusAction } from "../actions/set-admission-status.action";
 import type { AdmissionApplication } from "../types";
 
-export function AdmissionsManager({ applications }: { applications: AdmissionApplication[] }) {
+export function AdmissionsManager({
+  applications,
+}: {
+  applications: AdmissionApplication[];
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -22,7 +27,7 @@ export function AdmissionsManager({ applications }: { applications: AdmissionApp
     return applications.filter(
       (application) =>
         application.applicantName.toLowerCase().includes(q) ||
-        application.program.toLowerCase().includes(q)
+        application.program.toLowerCase().includes(q),
     );
   }, [applications, query]);
 
@@ -32,15 +37,35 @@ export function AdmissionsManager({ applications }: { applications: AdmissionApp
       header: "Applicant",
       render: (application) => (
         <div>
-          <p className="font-medium text-foreground">{application.applicantName}</p>
+          <p className="font-medium text-foreground">
+            {application.applicantName}
+          </p>
           <p className="text-xs text-muted-foreground">{application.email}</p>
         </div>
       ),
     },
-    { key: "program", header: "Program", render: (application) => application.program },
-    { key: "session", header: "Session", render: (application) => application.session },
-    { key: "submitted", header: "Submitted", render: (application) => application.submittedAt },
-    { key: "status", header: "Status", render: (application) => <ApprovalStatusBadge status={application.status} /> },
+    {
+      key: "program",
+      header: "Program",
+      render: (application) => application.program,
+    },
+    {
+      key: "session",
+      header: "Session",
+      render: (application) => application.session,
+    },
+    {
+      key: "submitted",
+      header: "Submitted",
+      render: (application) => application.submittedAt,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (application) => (
+        <ApprovalStatusBadge status={application.status} />
+      ),
+    },
     {
       key: "actions",
       header: "",
@@ -50,7 +75,11 @@ export function AdmissionsManager({ applications }: { applications: AdmissionApp
           <div className="flex justify-end gap-1">
             <ConfirmDialog
               trigger={
-                <Button variant="ghost" size="icon" aria-label={`Approve ${application.applicantName}`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Approve ${application.applicantName}`}
+                >
                   <Check className="size-4 text-success" />
                 </Button>
               }
@@ -64,7 +93,11 @@ export function AdmissionsManager({ applications }: { applications: AdmissionApp
             />
             <ConfirmDialog
               trigger={
-                <Button variant="ghost" size="icon" aria-label={`Reject ${application.applicantName}`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Reject ${application.applicantName}`}
+                >
                   <X className="size-4 text-destructive" />
                 </Button>
               }
@@ -83,7 +116,12 @@ export function AdmissionsManager({ applications }: { applications: AdmissionApp
 
   return (
     <div>
-      <EntityToolbar searchValue={query} onSearchChange={setQuery} searchPlaceholder="Search applications..." />
+      <EntityToolbar
+        action={<CreateAdmissionDialog />}
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search applications..."
+      />
       <DataTable
         columns={columns}
         rows={filtered}

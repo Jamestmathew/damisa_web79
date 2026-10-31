@@ -28,8 +28,16 @@ export function StudentBreadcrumbs() {
   if (segments.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-muted-foreground">
-      <Link href={STUDENT_ROUTES.dashboard} className="flex items-center hover:text-foreground" aria-label="Dashboard">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1.5 text-sm text-muted-foreground"
+    >
+      <Link
+        prefetch={false}
+        href={STUDENT_ROUTES.dashboard}
+        className="flex items-center hover:text-foreground"
+        aria-label="Dashboard"
+      >
         <Home className="size-3.5" />
       </Link>
       {segments.map((segment, index) => {
@@ -40,9 +48,15 @@ export function StudentBreadcrumbs() {
           <span key={href} className="flex items-center gap-1.5">
             <ChevronRight className="size-3.5" />
             {isLast ? (
-              <span className="font-medium text-foreground">{labelFor(segment)}</span>
+              <span className="font-medium text-foreground">
+                {labelFor(segment)}
+              </span>
             ) : (
-              <Link href={href} className="hover:text-foreground">
+              <Link
+                prefetch={false}
+                href={href}
+                className="hover:text-foreground"
+              >
                 {labelFor(segment)}
               </Link>
             )}

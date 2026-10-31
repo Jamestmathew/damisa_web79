@@ -10,10 +10,12 @@ export function buildUploadSchema(allowedTypes: string[], maxSizeMb: number) {
         message: `File type must be one of: ${allowedTypes.join(", ")}`,
       }),
     fileSizeMb: z.coerce
-      .number()
+      .number<number>()
       .positive("File size must be greater than zero")
       .max(maxSizeMb, `File must be smaller than ${maxSizeMb}MB`),
   });
 }
 
-export type UploadDocumentSchema = z.infer<ReturnType<typeof buildUploadSchema>>;
+export type UploadDocumentSchema = z.infer<
+  ReturnType<typeof buildUploadSchema>
+>;

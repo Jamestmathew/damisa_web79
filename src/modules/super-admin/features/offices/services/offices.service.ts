@@ -1,4 +1,5 @@
 import "server-only";
+import { requireRole } from "@/shared/rbac";
 
 import { createAdminClient } from "@/supabase/admin";
 import type { Office } from "@/modules/super-admin/shared/types";
@@ -41,11 +42,13 @@ function mapOffice(office: OfficeRow, profiles: ProfileRow[]): Office {
 }
 
 export async function getOffices(): Promise<Office[]> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const [
     { data: offices, error: officesError },
     { data: profiles, error: profilesError },
+    { data: income, error: incomeError },
   ] = await Promise.all([
     supabase
       .from("offices")
@@ -53,6 +56,10 @@ export async function getOffices(): Promise<Office[]> {
       .order("name", { ascending: true }),
 
     supabase.from("profiles").select("id, name, role, office_id"),
+    supabase
+      .from("lms_records")
+      .select("office_id,payload")
+      .eq("kind", "payment"),
   ]);
 
   if (officesError) {
@@ -65,14 +72,29 @@ export async function getOffices(): Promise<Office[]> {
     );
   }
 
-  return (offices ?? []).map((office) =>
-    mapOffice(office as OfficeRow, (profiles ?? []) as ProfileRow[]),
-  );
+  if (incomeError) throw new Error("Unable to load recorded company income.");
+  return (offices ?? []).map((office) => ({
+    ...mapOffice(office as OfficeRow, (profiles ?? []) as ProfileRow[]),
+    totalRevenueNaira: (income ?? [])
+      .filter(
+        (record) =>
+          record.office_id === office.id && record.payload.status === "paid",
+      )
+      .reduce(
+        (total, record) =>
+          total +
+          (Number.isFinite(record.payload.amountNaira)
+            ? record.payload.amountNaira
+            : 0),
+        0,
+      ),
+  }));
 }
 
 export async function findOfficeByName(
   name: string,
 ): Promise<OfficeRow | null> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const normalizedName = name.trim();
@@ -97,6 +119,7 @@ export async function findOfficeByName(
 export async function createOffice(
   name: string,
 ): Promise<{ ok: true; office: OfficeRow } | { ok: false; error: string }> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const normalizedName = name.trim();
@@ -141,6 +164,7 @@ export async function createOffice(
 export async function getOrCreateOffice(
   name: string,
 ): Promise<{ ok: true; office: OfficeRow } | { ok: false; error: string }> {
+  await requireRole(["super_admin"]);
   return createOffice(name);
 }
 
@@ -149,6 +173,7 @@ export async function assignAdminToOffice(
   adminId: string,
   adminName: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const { data: office, error: officeError } = await supabase
@@ -194,6 +219,7 @@ export async function assignAdminToOffice(
 export async function unassignOffice(
   officeId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const { error } = await supabase

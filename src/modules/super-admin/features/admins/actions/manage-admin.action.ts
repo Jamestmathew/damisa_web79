@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -15,8 +16,9 @@ const STATUS_PERMISSION = {
 
 export async function setAdminStatusAction(
   id: string,
-  status: AccountStatus
+  status: AccountStatus,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["super_admin"]);
   await requirePermission(STATUS_PERMISSION[status]);
 
   const result = await setAdminStatus(id, status);
@@ -29,8 +31,11 @@ export async function setAdminStatusAction(
 }
 
 export async function resetAdminPasswordAction(
-  id: string
-): Promise<{ ok: true; temporaryPassword: string } | { ok: false; error: string }> {
+  id: string,
+): Promise<
+  { ok: true; temporaryPassword: string } | { ok: false; error: string }
+> {
+  await authorizeAction(["super_admin"]);
   await requirePermission("admins:edit");
 
   return resetAdminPassword(id);

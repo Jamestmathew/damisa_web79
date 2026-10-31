@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -11,18 +12,27 @@ import type { KnowledgeBaseActionResult } from "../types";
 
 export async function uploadDocumentAction(
   _prevState: KnowledgeBaseActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<KnowledgeBaseActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("ai:manage_knowledge_base");
 
   const policy = await getAiGovernancePolicy();
 
   if (!policy.aiFeaturesEnabled || !policy.tutorKnowledgeBaseEnabled) {
-    return { ok: false, error: "The AI Knowledge Base has been disabled by your institution." };
+    return {
+      ok: false,
+      error: "The AI Knowledge Base has been disabled by your institution.",
+    };
   }
 
-  const schema = buildUploadSchema(policy.allowedUploadTypes, policy.maxUploadSizeMb);
-  const fileType = String(formData.get("fileType") ?? "").replace(/^\./, "").toLowerCase();
+  const schema = buildUploadSchema(
+    policy.allowedUploadTypes,
+    policy.maxUploadSizeMb,
+  );
+  const fileType = String(formData.get("fileType") ?? "")
+    .replace(/^\./, "")
+    .toLowerCase();
 
   const parsed = schema.safeParse({
     courseId: formData.get("courseId"),
@@ -32,7 +42,10 @@ export async function uploadDocumentAction(
   });
 
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid upload." };
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid upload.",
+    };
   }
 
   const courseTitle = String(formData.get("courseTitle") ?? "Course");

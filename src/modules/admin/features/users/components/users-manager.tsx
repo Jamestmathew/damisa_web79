@@ -1,4 +1,5 @@
 "use client";
+import { PauseCircle } from "lucide-react";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -80,6 +81,33 @@ export function UsersManager({ users }: { users: AdminUserRow[] }) {
       className: "text-right",
       render: (user) => (
         <div className="flex justify-end gap-1">
+          {user.role === "student" &&
+            user.status !== "suspended" &&
+            user.status !== "archived" && (
+              <ConfirmDialog
+                trigger={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Suspend ${user.name}`}
+                  >
+                    <PauseCircle className="size-4 text-destructive" />
+                  </Button>
+                }
+                title="Suspend student account"
+                description={`${user.name} will lose access until the account is activated again.`}
+                confirmLabel="Suspend"
+                onConfirm={async () => {
+                  const result = await setUserStatusAction(
+                    user.id,
+                    "suspended",
+                  );
+                  if (!result.ok) throw new Error(result.error);
+                  router.refresh();
+                }}
+              />
+            )}
+
           <UserFormDialog
             user={user}
             onSaved={() => router.refresh()}

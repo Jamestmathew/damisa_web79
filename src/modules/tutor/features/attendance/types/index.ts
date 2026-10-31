@@ -3,7 +3,7 @@ export type AttendanceMark = "present" | "absent" | "late";
 export interface AttendanceStudentRow {
   studentId: string;
   studentName: string;
-  mark: AttendanceMark;
+  mark: AttendanceMark | null;
 }
 
 export interface AttendanceSession {

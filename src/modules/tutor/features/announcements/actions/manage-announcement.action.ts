@@ -1,17 +1,22 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/shared/rbac";
 import { TUTOR_ROUTES } from "@/modules/tutor/shared/constants";
 import { tutorAnnouncementFormSchema } from "../validation/announcement-form.schema";
-import { createTutorAnnouncement, deleteTutorAnnouncement } from "../services/announcements.service";
+import {
+  createTutorAnnouncement,
+  deleteTutorAnnouncement,
+} from "../services/announcements.service";
 import type { TutorAnnouncementActionResult } from "../types";
 
 export async function createTutorAnnouncementAction(
   _prevState: TutorAnnouncementActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<TutorAnnouncementActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   const parsed = tutorAnnouncementFormSchema.safeParse({
@@ -41,8 +46,9 @@ export async function createTutorAnnouncementAction(
 }
 
 export async function deleteTutorAnnouncementAction(
-  id: string
+  id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   const result = await deleteTutorAnnouncement(id);

@@ -19,11 +19,16 @@ export default function RegisterPage() {
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-10 text-center">
         <ShieldOff className="size-8 text-muted-foreground" />
         <p className="max-w-xs text-sm text-muted-foreground">
-          This platform doesn't support public sign-up. Student, Tutor, and Admin accounts are created
-          by your institution's administrator, who will issue your sign-in credentials.
+          This platform doesn&apos;t support public sign-up. Student, Tutor, and
+          Admin accounts are created by your institution&apos;s administrator,
+          who will issue your sign-in credentials.
         </p>
       </div>
-      <AuthFooter prompt="Already have an account?" linkLabel="Sign in" href={AUTH_ROUTES.login} />
+      <AuthFooter
+        prompt="Already have an account?"
+        linkLabel="Sign in"
+        href={AUTH_ROUTES.login}
+      />
     </AuthCard>
   );
 }

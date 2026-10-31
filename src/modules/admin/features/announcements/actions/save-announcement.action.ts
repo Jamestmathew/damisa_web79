@@ -1,16 +1,21 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
 import { ADMIN_ROUTES } from "@/modules/admin/shared/constants";
 import { announcementFormSchema } from "../validation/announcement-form.schema";
-import { createAnnouncement, updateAnnouncement } from "../services/announcements.service";
+import {
+  createAnnouncement,
+  updateAnnouncement,
+} from "../services/announcements.service";
 import type { AnnouncementActionResult } from "../types";
 
 export async function saveAnnouncementAction(
   _prevState: AnnouncementActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<AnnouncementActionResult> {
+  await authorizeAction(["admin"]);
   try {
     const parsed = announcementFormSchema.safeParse({
       id: formData.get("id") || undefined,
@@ -33,13 +38,18 @@ export async function saveAnnouncementAction(
     }
 
     const { id, ...input } = parsed.data;
-    const result = id ? await updateAnnouncement(id, input) : await createAnnouncement(input);
+    const result = id
+      ? await updateAnnouncement(id, input)
+      : await createAnnouncement(input);
 
     if (!result.ok) return { ok: false, error: result.error };
 
     revalidatePath(ADMIN_ROUTES.announcements);
 
-    return { ok: true, message: id ? "Announcement updated." : "Announcement posted." };
+    return {
+      ok: true,
+      message: id ? "Announcement updated." : "Announcement posted.",
+    };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };
   }

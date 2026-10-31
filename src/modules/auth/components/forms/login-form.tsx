@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -17,7 +17,10 @@ import {
 import { AUTH_ROUTES } from "@/modules/auth/constants";
 import { loginAction } from "@/modules/auth/actions/login.action";
 import type { AuthActionState } from "@/modules/auth/types";
-import { loginSchema, type LoginSchema } from "@/modules/auth/validation/login.schema";
+import {
+  loginSchema,
+  type LoginSchema,
+} from "@/modules/auth/validation/login.schema";
 import {
   PasswordInput,
   LoadingButton,
@@ -25,11 +28,11 @@ import {
 } from "@/modules/auth/components/ui";
 
 export function LoginForm() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [state, setState] = useState<AuthActionState<{ redirectTo: string }>>(null);
+  const [state, setState] =
+    useState<AuthActionState<{ redirectTo: string }>>(null);
 
-  const form = useForm<LoginSchema>({
+  const form = useForm<z.input<typeof loginSchema>, unknown, LoginSchema>({
     resolver: zodResolver(loginSchema),
     defaultValues: { identifier: "", password: "", rememberMe: false },
   });
@@ -52,11 +55,6 @@ export function LoginForm() {
           }
         }
       }
-
-      if (result?.ok) {
-        router.push(result.data.redirectTo);
-        router.refresh();
-      }
     });
   }
 
@@ -66,7 +64,11 @@ export function LoginForm() {
         <FormStatusMessage variant="error" message={state.error} />
       ) : null}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+      >
         <FormField
           control={form.control}
           name="identifier"
@@ -120,12 +122,19 @@ export function LoginForm() {
                   className="h-4 w-4 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </FormControl>
-              <FormLabel className="cursor-pointer font-normal">Remember me</FormLabel>
+              <FormLabel className="cursor-pointer font-normal">
+                Remember me
+              </FormLabel>
             </FormItem>
           )}
         />
 
-        <LoadingButton type="submit" className="w-full" isLoading={isPending} loadingText="Signing in...">
+        <LoadingButton
+          type="submit"
+          className="w-full"
+          isLoading={isPending}
+          loadingText="Signing in..."
+        >
           Sign in
         </LoadingButton>
       </form>

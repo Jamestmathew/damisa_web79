@@ -6,7 +6,10 @@ export const examFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
   time: z.string().min(1, "Time is required"),
   venue: z.string().min(2, "Venue is required"),
-  durationMinutes: z.coerce.number().int().min(15, "Must be at least 15 minutes"),
+  durationMinutes: z.coerce
+    .number<number>()
+    .int()
+    .min(15, "Must be at least 15 minutes"),
 });
 
 export type ExamFormSchema = z.infer<typeof examFormSchema>;

@@ -1,16 +1,19 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
+import { requireRole } from "@/shared/rbac";
 
 import { revalidatePath } from "next/cache";
 
-import { STUDENT_ROUTES } from "@/modules/student/shared/constants";
 import { appearancePreferencesSchema } from "../validation/preferences.schema";
 import { updateAppearancePreferences } from "../services/settings.service";
 import type { SettingsActionResult } from "../types";
 
 export async function updateAppearanceAction(
   _prevState: SettingsActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<SettingsActionResult> {
+  await authorizeAction(["student"]);
+  await requireRole(["student"]);
   try {
     const parsed = appearancePreferencesSchema.safeParse({
       theme: formData.get("theme"),
@@ -22,7 +25,7 @@ export async function updateAppearanceAction(
     }
 
     await updateAppearancePreferences(parsed.data);
-    revalidatePath(STUDENT_ROUTES.settings);
+    revalidatePath("/student", "layout");
 
     return { ok: true, message: "Appearance preferences updated." };
   } catch {

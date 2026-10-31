@@ -1,11 +1,11 @@
 import "server-only";
+import { invalidateSessions } from "@/shared/security/revoke-sessions";
+import { requireRole } from "@/shared/rbac";
 
 import { createAdminClient } from "@/supabase/admin";
 import {
   getOffices,
   getOrCreateOffice,
-  assignAdminToOffice,
-  unassignOffice,
 } from "@/modules/super-admin/features/offices/services/offices.service";
 
 import type { AdminRow } from "../types";
@@ -20,10 +20,11 @@ type AdminProfileRow = {
 };
 
 function generateTemporaryPassword() {
-  return `Welcome-${Math.random().toString(36).slice(2, 8)}`;
+  return `Welcome-${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
 export async function getAdmins(): Promise<AdminRow[]> {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   const { data: profiles, error } = await supabase
@@ -38,24 +39,27 @@ export async function getAdmins(): Promise<AdminRow[]> {
 
   const offices = await getOffices();
 
-  return (
-    (profiles ?? []) as (AdminProfileRow & {
-      office_id: string | null;
-    })[]
-  ).map((profile) => {
-    const office = offices.find((office) => office.id === profile.office_id);
+  return Promise.all(
+    (
+      (profiles ?? []) as (AdminProfileRow & { office_id: string | null })[]
+    ).map(async (profile) => {
+      const account = await supabase.auth.admin.getUserById(profile.id);
+      if (account.error)
+        throw new Error("Unable to load admin account details.");
+      const office = offices.find((office) => office.id === profile.office_id);
 
-    return {
-      id: profile.id,
-      name: profile.name,
-      email: "",
-      status: profile.status,
-      staffId: profile.staff_id,
-      createdAt: profile.created_at,
-      officeId: profile.office_id,
-      officeName: office?.name ?? null,
-    };
-  });
+      return {
+        id: profile.id,
+        name: profile.name,
+        email: account.data.user?.email ?? "",
+        status: profile.status,
+        staffId: profile.staff_id,
+        createdAt: profile.created_at,
+        officeId: profile.office_id,
+        officeName: office?.name ?? null,
+      };
+    }),
+  );
 }
 
 export async function createAdmin(input: {
@@ -71,6 +75,7 @@ export async function createAdmin(input: {
       fieldErrors?: Partial<Record<string, string>>;
     }
 > {
+  await requireRole(["super_admin"]);
   const supabase = createAdminClient();
 
   let officeId: string | undefined;
@@ -122,9 +127,12 @@ export async function createAdmin(input: {
       office_id: officeId ?? null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id")
+    .single();
 
   if (profileError) {
+    await supabase.auth.admin.deleteUser(userId);
     return {
       ok: false,
       error: `Admin account was created, but the profile could not be configured: ${profileError.message}`,
@@ -153,6 +161,9 @@ export async function updateAdmin(
       fieldErrors?: Partial<Record<string, string>>;
     }
 > {
+  await requireRole(["super_admin"]);
+  if (!(await isManagedAdmin(id)))
+    return { ok: false, error: "Admin not found." };
   const supabase = createAdminClient();
 
   const { error: authError } = await supabase.auth.admin.updateUserById(id, {
@@ -201,17 +212,6 @@ export async function updateAdmin(
     officeId = officeResult.office.id;
   }
 
-  if (currentProfile.office_id && currentProfile.office_id !== officeId) {
-    const unassignResult = await unassignOffice(currentProfile.office_id);
-
-    if (!unassignResult.ok) {
-      return {
-        ok: false,
-        error: unassignResult.error,
-      };
-    }
-  }
-
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
@@ -237,6 +237,11 @@ export async function setAdminStatus(
   id: string,
   status: AdminRow["status"],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireRole(["super_admin"]);
+  if (!(await isManagedAdmin(id)))
+    return { ok: false, error: "Admin not found." };
+  if (!["active", "inactive", "suspended", "archived"].includes(status))
+    return { ok: false, error: "Invalid account status." };
   const supabase = createAdminClient();
 
   const { error } = await supabase
@@ -255,6 +260,7 @@ export async function setAdminStatus(
     };
   }
 
+  await invalidateSessions(id);
   return { ok: true };
 }
 
@@ -263,6 +269,9 @@ export async function resetAdminPassword(
 ): Promise<
   { ok: true; temporaryPassword: string } | { ok: false; error: string }
 > {
+  await requireRole(["super_admin"]);
+  if (!(await isManagedAdmin(id)))
+    return { ok: false, error: "Admin not found." };
   const supabase = createAdminClient();
 
   const temporaryPassword = generateTemporaryPassword();
@@ -278,8 +287,20 @@ export async function resetAdminPassword(
     };
   }
 
+  await invalidateSessions(id);
+
   return {
     ok: true,
     temporaryPassword,
   };
+}
+
+async function isManagedAdmin(id: string) {
+  const { data, error } = await createAdminClient()
+    .from("profiles")
+    .select("id")
+    .eq("id", id)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !error && Boolean(data);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -21,17 +22,28 @@ import {
 } from "../validation/preferences.schema";
 import type { AppearancePreferences, SettingsActionResult } from "../types";
 
-const THEME_OPTIONS: { value: AppearancePreferencesSchema["theme"]; label: string }[] = [
+const THEME_OPTIONS: {
+  value: AppearancePreferencesSchema["theme"];
+  label: string;
+}[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
   { value: "system", label: "System" },
 ];
 
-export function AppearanceSettingsForm({ initialValues }: { initialValues: AppearancePreferences }) {
+export function AppearanceSettingsForm({
+  initialValues,
+}: {
+  initialValues: AppearancePreferences;
+}) {
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<SettingsActionResult | null>(null);
 
-  const form = useForm<AppearancePreferencesSchema>({
+  const form = useForm<
+    z.input<typeof appearancePreferencesSchema>,
+    unknown,
+    AppearancePreferencesSchema
+  >({
     resolver: zodResolver(appearancePreferencesSchema),
     defaultValues: initialValues,
   });
@@ -57,7 +69,11 @@ export function AppearanceSettingsForm({ initialValues }: { initialValues: Appea
         />
       ) : null}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+      >
         <FormField
           control={form.control}
           name="theme"
@@ -75,7 +91,7 @@ export function AppearanceSettingsForm({ initialValues }: { initialValues: Appea
                         "flex-1 rounded-md border border-input px-3 py-2 text-sm font-medium transition-colors",
                         field.value === option.value
                           ? "border-primary bg-secondary text-secondary-foreground"
-                          : "text-muted-foreground hover:bg-accent"
+                          : "text-muted-foreground hover:bg-accent",
                       )}
                     >
                       {option.label}
@@ -92,7 +108,9 @@ export function AppearanceSettingsForm({ initialValues }: { initialValues: Appea
           name="compactSidebar"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-md border border-border p-3">
-              <FormLabel className="cursor-pointer">Compact sidebar by default</FormLabel>
+              <FormLabel className="cursor-pointer">
+                Compact sidebar by default
+              </FormLabel>
               <FormControl>
                 <input
                   type="checkbox"
@@ -105,7 +123,11 @@ export function AppearanceSettingsForm({ initialValues }: { initialValues: Appea
           )}
         />
 
-        <LoadingButton type="submit" isLoading={isPending} loadingText="Saving...">
+        <LoadingButton
+          type="submit"
+          isLoading={isPending}
+          loadingText="Saving..."
+        >
           Save appearance
         </LoadingButton>
       </form>

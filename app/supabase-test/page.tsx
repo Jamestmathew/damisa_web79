@@ -1,27 +1,19 @@
-import { createClient } from "@/supabase/server";
-
+import { requireRole } from "@/shared/rbac";
+import { createAdminClient } from "@/supabase/admin";
 export default async function SupabaseTestPage() {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
+  await requireRole(["super_admin"]);
+  const { error } = await createAdminClient()
     .from("offices")
-    .select("id, name")
-    .limit(5);
-
+    .select("id")
+    .limit(1);
   return (
     <main className="p-8">
-      <h1 className="text-2xl font-bold">Supabase Connection Test</h1>
-
-      <pre className="mt-4 rounded-lg border p-4">
-        {JSON.stringify(
-          {
-            data,
-            error: error?.message ?? null,
-          },
-          null,
-          2,
-        )}
-      </pre>
+      <h1 className="text-2xl font-bold">Database status</h1>
+      <p>
+        {error
+          ? "The database is unavailable. Check the server configuration."
+          : "The database connection is healthy."}
+      </p>
     </main>
   );
 }

@@ -1,30 +1,45 @@
 import "server-only";
-
+import { getContext } from "@/shared/security/context";
+import { notFound } from "next/navigation";
+import { listRecords, getRecord, saveRecord } from "@/shared/data/records";
+import type { TutorLesson } from "@/modules/tutor/features/lessons/types";
+import type { TutorCourseDetails } from "@/modules/tutor/features/courses/types";
 import type { LessonDetails } from "../types";
-
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Mock lookup. Real implementation would fetch by (courseId, lessonId) from
- * the backend; this generates a plausible lesson so every module/lesson
- * link produced by CourseModulesList resolves to a working page.
- */
-export async function getLessonById(courseId: string, lessonId: string): Promise<LessonDetails> {
-  await delay();
-
+export async function getLessonById(
+  courseId: string,
+  lessonId: string,
+): Promise<LessonDetails> {
+  const course = await getRecord<TutorCourseDetails>("course", courseId);
+  const lessons = (await listRecords<TutorLesson>("lesson")).filter(
+    (l) => l.courseId === courseId,
+  );
+  const index = lessons.findIndex((l) => l.id === lessonId);
+  const lesson = lessons[index];
+  if (!course || !lesson) notFound();
+  const completed = (
+    await listRecords<{ lessonId: string }>("lesson_progress")
+  ).some((p) => p.lessonId === lessonId);
   return {
-    id: lessonId,
-    moduleId: lessonId.replace(/-lesson-\d+$/, ""),
-    courseId,
-    courseTitle: "Course",
-    title: "Introduction & Overview",
-    contentType: "video",
-    durationMinutes: 12,
-    completed: false,
-    body: "This lesson introduces the core concepts covered in this module, building on what you've learned so far and setting up the problems you'll solve in the following lessons.",
-    nextLessonId: null,
-    previousLessonId: null,
+    ...lesson,
+    moduleId: "lessons",
+    courseTitle: course.title,
+    completed,
+    nextLessonId: lessons[index + 1]?.id ?? null,
+    previousLessonId: lessons[index - 1]?.id ?? null,
   };
+}
+export async function completeLesson(courseId: string, lessonId: string) {
+  const { user } = await getContext();
+  await getLessonById(courseId, lessonId);
+  if (
+    !(await listRecords<{ lessonId: string }>("lesson_progress")).some(
+      (p) => p.lessonId === lessonId,
+    )
+  )
+    await saveRecord("lesson_progress", {
+      courseId,
+      lessonId,
+      studentId: user.id,
+      completedAt: new Date().toISOString(),
+    });
 }

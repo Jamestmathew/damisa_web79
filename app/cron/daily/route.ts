@@ -1,33 +1,28 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
+import { createAdminClient } from "@/supabase/admin";
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // Your light database operation
-  const { error } = await supabase
-    .from("users")
-    .update({ active: true })
-    .eq("active", false);
-
-  if (error) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret)
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      { error: "Cron is not configured." },
+      { status: 503 },
     );
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: "Daily cron completed",
-  });
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const supplied = Buffer.from(request.headers.get("authorization") ?? "");
+  if (
+    supplied.length !== expected.length ||
+    !timingSafeEqual(supplied, expected)
+  )
+    return new NextResponse("Unauthorized", { status: 401 });
+  const { error } = await createAdminClient().rpc("cleanup_lms_rate_limits");
+  if (error)
+    return NextResponse.json({ error: "Maintenance failed." }, { status: 500 });
+  const attendance = await createAdminClient().rpc("attendance_finalize_due");
+  if (attendance.error)
+    return NextResponse.json(
+      { error: "Attendance finalization failed." },
+      { status: 500 },
+    );
+  return NextResponse.json({ success: true, finalizedDays: attendance.data });
 }

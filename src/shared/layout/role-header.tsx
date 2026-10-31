@@ -1,7 +1,8 @@
+import { CurrentUserAvatar } from "@/shared/account/current-user-avatar";
+import Link from "next/link";
 import { LogOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { MobileNav } from "./mobile-nav";
 import { Breadcrumbs } from "./breadcrumbs";
@@ -15,15 +16,6 @@ interface RoleHeaderProps {
   brandLabel: string;
   brandIcon: IconName;
   logoutAction: () => Promise<void>;
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 export function RoleHeader({
@@ -54,10 +46,14 @@ export function RoleHeader({
           <p className="text-xs text-muted-foreground">{userEmail}</p>
         </div>
 
-        <Avatar>
-          <AvatarFallback>{initials(userName)}</AvatarFallback>
-        </Avatar>
+        <CurrentUserAvatar name={userName} />
 
+        <Link
+          className="text-xs text-primary hover:underline"
+          href="/settings/change-password"
+        >
+          Change password
+        </Link>
         <form action={logoutAction}>
           <Button
             type="submit"

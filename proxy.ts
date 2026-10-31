@@ -1,3 +1,5 @@
+import { jwtVerify } from "jose";
+import { SESSION_COOKIE } from "@/shared/security/policy";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -13,7 +15,7 @@ const ROLE_PREFIXES: { prefix: string; role: Role }[] = [
 
 const GUEST_ONLY_PATHS = [AUTH_ROUTES.login, AUTH_ROUTES.forgotPassword];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
@@ -50,43 +52,78 @@ export async function middleware(request: NextRequest) {
 
   let role: Role | null = null;
 
-  if (user) {
+  let boundaryValid = false;
+  let sessionVersion: unknown;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  if (user && token && process.env.SESSION_SECRET) {
+    try {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(process.env.SESSION_SECRET),
+        { algorithms: ["HS256"], issuer: "damisa-lms", audience: "session" },
+      );
+      sessionVersion = payload.version;
+      boundaryValid = payload.sub === user.id && payload.purpose === "session";
+    } catch {
+      /* Expired or invalid sessions must sign in again. */
+    }
+  }
+  if (user && boundaryValid) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, status")
+      .select("role, status, session_version")
       .eq("id", user.id)
       .single();
 
-    if (profile?.status === "active") {
+    if (
+      profile?.status === "active" &&
+      profile.session_version === sessionVersion &&
+      Object.hasOwn(ROLE_HOME_PATH, profile.role)
+    ) {
       role = profile.role as Role;
     }
   }
 
   const { pathname } = request.nextUrl;
 
-  const matchedRolePrefix = ROLE_PREFIXES.find((entry) =>
-    pathname.startsWith(entry.prefix),
+  const matchedRolePrefix = ROLE_PREFIXES.find(
+    (entry) =>
+      pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`),
   );
 
   const isGuestOnly = GUEST_ONLY_PATHS.some((path) =>
     pathname.startsWith(path),
   );
 
-  if (matchedRolePrefix) {
+  if (matchedRolePrefix || pathname.startsWith("/settings/")) {
     if (!role) {
       const loginUrl = new URL(AUTH_ROUTES.login, request.url);
       loginUrl.searchParams.set("from", pathname);
 
-      return NextResponse.redirect(loginUrl);
+      const redirect = NextResponse.redirect(loginUrl);
+      response.cookies
+        .getAll()
+        .forEach((cookie) => redirect.cookies.set(cookie));
+      return redirect;
     }
 
-    if (role !== matchedRolePrefix.role) {
-      return NextResponse.redirect(new URL(ROLE_HOME_PATH[role], request.url));
+    if (matchedRolePrefix && role !== matchedRolePrefix.role) {
+      const redirect = NextResponse.redirect(
+        new URL(ROLE_HOME_PATH[role], request.url),
+      );
+      response.cookies
+        .getAll()
+        .forEach((cookie) => redirect.cookies.set(cookie));
+      return redirect;
     }
   }
 
   if (isGuestOnly && role) {
-    return NextResponse.redirect(new URL(ROLE_HOME_PATH[role], request.url));
+    const redirect = NextResponse.redirect(
+      new URL(ROLE_HOME_PATH[role], request.url),
+    );
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
   }
 
   return response;
@@ -95,6 +132,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/student/:path*",
+    "/settings/:path*",
     "/tutor/:path*",
     "/admin/:path*",
     "/super-admin/:path*",

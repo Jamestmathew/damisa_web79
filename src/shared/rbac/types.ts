@@ -38,6 +38,13 @@ export type Permission =
   | "exams:manage_own"
   | "gradebook:manage_own"
   | "attendance:manage_own"
+  | "attendance:students"
+  | "attendance:staff"
+  | "attendance:policy"
+  | "attendance:view_self"
+  | "attendance:clock_self"
+  | "attendance:approve_student_tutor"
+  | "attendance:approve_admin"
   // Payments
   | "payments:view_own"
   | "payments:view_all"
@@ -50,6 +57,8 @@ export type Permission =
   | "ai:manage_knowledge_base"
   | "ai:manage_governance"
   // Super Admin — platform-wide oversight, distinct from Admin's per-institution scope
+  | "students:delete"
+  | "admins:delete"
   | "admins:create"
   | "admins:edit"
   | "admins:activate"

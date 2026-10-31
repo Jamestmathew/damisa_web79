@@ -1,3 +1,4 @@
+import { OwnAttendanceHistory } from "@/shared/attendance/history";
 import type { Metadata } from "next";
 
 import { PageHeader } from "@/modules/student/shared/components";
@@ -15,7 +16,12 @@ export default async function AttendancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Attendance" description="Your class attendance record" />
+      <PageHeader
+        title="Attendance"
+        description="Your daily arrivals and course attendance"
+      />
+      <OwnAttendanceHistory />
+      <h2 className="text-xl font-semibold">Course attendance</h2>
 
       <div className="max-w-sm">
         <AttendanceSummaryCard summary={summary} />

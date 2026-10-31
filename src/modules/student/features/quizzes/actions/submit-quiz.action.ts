@@ -1,4 +1,6 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
+import { requireRole } from "@/shared/rbac";
 
 import { revalidatePath } from "next/cache";
 
@@ -13,16 +15,24 @@ export type QuizActionResult =
 
 export async function submitQuizAction(
   quizId: string,
-  answers: Record<string, string>
+  answers: Record<string, string>,
 ): Promise<QuizActionResult> {
+  await authorizeAction(["student"]);
+  await requireRole(["student"]);
   try {
     const parsed = quizAttemptSchema.safeParse({ quizId, answers });
 
     if (!parsed.success) {
-      return { ok: false, error: "Please answer every question before submitting." };
+      return {
+        ok: false,
+        error: "Please answer every question before submitting.",
+      };
     }
 
-    const result = await submitQuizAttempt(parsed.data.quizId, parsed.data.answers);
+    const result = await submitQuizAttempt(
+      parsed.data.quizId,
+      parsed.data.answers,
+    );
 
     if (!result.ok) {
       return { ok: false, error: result.error };

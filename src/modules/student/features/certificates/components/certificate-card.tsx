@@ -15,7 +15,9 @@ export function CertificateCard({ certificate }: { certificate: Certificate }) {
             <Award className="size-4 text-secondary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{certificate.courseTitle}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {certificate.courseTitle}
+            </p>
             <p className="text-xs text-muted-foreground">
               {certificate.courseCode} · Issued {certificate.issuedAt}
             </p>
@@ -23,8 +25,13 @@ export function CertificateCard({ certificate }: { certificate: Certificate }) {
         </div>
         <div className="flex items-center gap-2">
           <CertificatePreviewDialog certificate={certificate} />
-          <Button variant="ghost" size="icon" aria-label="Download certificate" disabled>
-            <Download className="size-4" />
+          <Button variant="ghost" size="icon" asChild>
+            <a
+              href={`/student/certificates/${certificate.id}/download`}
+              aria-label="Download certificate"
+            >
+              <Download className="size-4" />
+            </a>
           </Button>
         </div>
       </CardContent>

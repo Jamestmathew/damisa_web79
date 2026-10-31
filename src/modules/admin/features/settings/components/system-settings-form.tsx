@@ -5,7 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -39,14 +45,16 @@ export function SystemSettingsForm({ settings }: { settings: SystemSettings }) {
       formData.set("institutionName", values.institutionName);
       formData.set("academicSession", values.academicSession);
       formData.set("supportEmail", values.supportEmail);
-      if (values.allowManualPaymentRecording) formData.set("allowManualPaymentRecording", "on");
+      if (values.allowManualPaymentRecording)
+        formData.set("allowManualPaymentRecording", "on");
 
       const result = await saveSystemSettingsAction(null, formData);
       setState(result);
 
       if (!result.ok && result.fieldErrors) {
         for (const [field, message] of Object.entries(result.fieldErrors)) {
-          if (message) form.setError(field as keyof SystemSettingsSchema, { message });
+          if (message)
+            form.setError(field as keyof SystemSettingsSchema, { message });
         }
       }
     });
@@ -56,7 +64,9 @@ export function SystemSettingsForm({ settings }: { settings: SystemSettings }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Institution details</CardTitle>
-        <CardDescription>General settings that apply across the platform.</CardDescription>
+        <CardDescription>
+          General settings that apply across the platform.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -67,7 +77,11 @@ export function SystemSettingsForm({ settings }: { settings: SystemSettings }) {
             />
           ) : null}
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+            noValidate
+          >
             <FormField
               control={form.control}
               name="institutionName"
@@ -126,13 +140,17 @@ export function SystemSettingsForm({ settings }: { settings: SystemSettings }) {
                     />
                   </FormControl>
                   <FormLabel className="cursor-pointer font-normal">
-                    Allow manual payment recording in Finance
+                    Allow manual company income recording in Finance
                   </FormLabel>
                 </FormItem>
               )}
             />
 
-            <LoadingButton type="submit" isLoading={isPending} loadingText="Saving...">
+            <LoadingButton
+              type="submit"
+              isLoading={isPending}
+              loadingText="Saving..."
+            >
               Save settings
             </LoadingButton>
           </form>

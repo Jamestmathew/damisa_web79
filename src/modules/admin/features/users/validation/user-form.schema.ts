@@ -1,3 +1,4 @@
+import { isMatricIdentifier } from "@/shared/security/policy";
 import { z } from "zod";
 
 export const userFormSchema = z
@@ -10,7 +11,14 @@ export const userFormSchema = z
       .optional()
       .or(z.literal("")),
     role: z.enum(["student", "tutor"]),
-    matricNumber: z.string().optional(),
+    matricNumber: z
+      .string()
+      .trim()
+      .refine(
+        (v) => !v || isMatricIdentifier(v),
+        "Use letters, numbers, spaces, slash, dot, underscore, or hyphen.",
+      )
+      .optional(),
     staffId: z.string().optional(),
   })
   .superRefine((data, ctx) => {

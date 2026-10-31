@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 import {
   Dialog,
@@ -26,23 +26,61 @@ import {
 import { LoadingButton, FormStatusMessage } from "@/modules/auth/components/ui";
 
 import { recordPaymentAction } from "../actions/record-payment.action";
-import { recordPaymentSchema, type RecordPaymentSchema } from "../validation/record-payment.schema";
-import type { FinanceActionResult } from "../types";
+import {
+  recordPaymentSchema,
+  type RecordPaymentSchema,
+} from "../validation/record-payment.schema";
+import type { PaymentRecord, FinanceActionResult } from "../types";
 
-export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
+export function RecordPaymentDialog({
+  onSaved,
+  record,
+  students,
+}: {
+  onSaved: () => void;
+  record?: PaymentRecord;
+  students: { id: string; name: string; matricNumber?: string | null }[];
+}) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<FinanceActionResult | null>(null);
 
   const form = useForm<RecordPaymentSchema>({
     resolver: zodResolver(recordPaymentSchema),
-    defaultValues: { payerName: "", payerEmail: "", purpose: "", amountNaira: 0, reference: "" },
+    defaultValues: record
+      ? {
+          id: record.id,
+          studentId: record.studentId ?? "",
+          payerName: record.payerName,
+          payerEmail: record.payerEmail,
+          purpose: record.purpose,
+          amountNaira: record.amountNaira,
+          reference: record.reference,
+          earnedOn: record.earnedOn ?? record.recordedAt.slice(0, 10),
+        }
+      : {
+          studentId: "",
+          payerName: "",
+          payerEmail: "",
+          purpose: "",
+          amountNaira: 0,
+          reference: "",
+          earnedOn: new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Africa/Lagos",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(new Date()),
+        },
   });
 
   function onSubmit(values: RecordPaymentSchema) {
     setState(null);
     startTransition(async () => {
       const formData = new FormData();
+      if (values.id) formData.set("id", values.id);
+      formData.set("studentId", values.studentId);
+      formData.set("earnedOn", values.earnedOn);
       formData.set("payerName", values.payerName);
       formData.set("payerEmail", values.payerEmail);
       formData.set("purpose", values.purpose);
@@ -54,7 +92,8 @@ export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
 
       if (!result.ok && result.fieldErrors) {
         for (const [field, message] of Object.entries(result.fieldErrors)) {
-          if (message) form.setError(field as keyof RecordPaymentSchema, { message });
+          if (message)
+            form.setError(field as keyof RecordPaymentSchema, { message });
         }
         return;
       }
@@ -68,29 +107,81 @@ export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setState(null); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setState(null);
+      }}
+    >
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="size-4" />
-          Record payment
+        <Button
+          variant={record ? "ghost" : "default"}
+          size={record ? "icon" : "default"}
+          aria-label={record ? "Edit company income" : undefined}
+        >
+          {record ? (
+            <Pencil className="size-4" />
+          ) : (
+            <>
+              <Plus className="size-4" />
+              Record income
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record manual payment</DialogTitle>
-          <DialogDescription>For payments received outside the online payment flow (cash, etc.).</DialogDescription>
+          <DialogTitle>Record company income</DialogTitle>
+          <DialogDescription>
+            Enter the amount earned by a company. This is a manual income
+            record.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          {state && !state.ok ? <FormStatusMessage variant="error" message={state.error} /> : null}
+          {state && !state.ok ? (
+            <FormStatusMessage variant="error" message={state.error} />
+          ) : null}
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+            noValidate
+          >
+            <FormField
+              control={form.control}
+              name="studentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Student payment (optional)</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      className="h-10 w-full rounded-md border bg-background px-3"
+                    >
+                      <option value="">Other company income</option>
+                      {students.map((student) => (
+                        <option key={student.id} value={student.id}>
+                          {student.name} ({student.matricNumber})
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Selecting a student adds this payment to their balance and
+                    the company income once.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="payerName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payer name</FormLabel>
+                  <FormLabel>Company name</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -103,7 +194,7 @@ export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
               name="payerEmail"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payer email</FormLabel>
+                  <FormLabel>Contact email (optional)</FormLabel>
                   <FormControl>
                     <Input type="email" {...field} />
                   </FormControl>
@@ -116,9 +207,22 @@ export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
               name="purpose"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Purpose</FormLabel>
+                  <FormLabel>Income description</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Tuition - Fall 2026" {...field} />
+                    <Input placeholder="e.g. October earnings" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="earnedOn"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Income date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -153,8 +257,13 @@ export function RecordPaymentDialog({ onSaved }: { onSaved: () => void }) {
               />
             </div>
 
-            <LoadingButton type="submit" className="w-full" isLoading={isPending} loadingText="Recording...">
-              Record payment
+            <LoadingButton
+              type="submit"
+              className="w-full"
+              isLoading={isPending}
+              loadingText="Recording..."
+            >
+              Save income
             </LoadingButton>
           </form>
         </Form>

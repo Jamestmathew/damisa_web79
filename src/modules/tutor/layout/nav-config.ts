@@ -2,6 +2,7 @@ import { TUTOR_ROUTES } from "@/modules/tutor/shared/constants";
 import type { RoleNavItem } from "@/shared/layout";
 
 export const tutorNavConfig: RoleNavItem[] = [
+  { label: "My attendance", href: "/tutor/my-attendance", icon: "attendance" },
   {
     label: "Dashboard",
     href: TUTOR_ROUTES.dashboard,

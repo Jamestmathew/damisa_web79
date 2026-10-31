@@ -1,119 +1,110 @@
 import "server-only";
-
+import { listRecords, getRecord, saveRecord } from "@/shared/data/records";
+import { getContext } from "@/shared/security/context";
+import { gradeAnswers } from "@/shared/security/policy";
+import type { TutorQuiz } from "@/modules/tutor/features/quizzes/types";
 import type { QuizDetails, QuizSummary } from "../types";
-
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export interface Attempt {
+  studentId: string;
+  quizId: string;
+  courseId: string;
+  scorePercent: number;
+  correctCount: number;
+  totalCount: number;
+  submittedAt: string;
 }
-
-const MOCK_QUIZZES: QuizDetails[] = [
-  {
-    id: "quiz_1",
-    courseId: "crs_101",
-    courseTitle: "CSC 301 · Data Structures & Algorithms",
-    title: "Trees & BSTs Quiz",
-    questionCount: 3,
-    durationMinutes: 15,
-    dueAt: "In 3 days",
-    status: "not_started",
-    bestScorePercent: null,
-    questions: [
-      {
-        id: "q1",
-        prompt: "What is the time complexity of searching in a balanced binary search tree?",
-        options: [
-          { id: "a", label: "O(1)" },
-          { id: "b", label: "O(log n)" },
-          { id: "c", label: "O(n)" },
-          { id: "d", label: "O(n log n)" },
-        ],
-      },
-      {
-        id: "q2",
-        prompt: "Which traversal visits nodes in ascending order for a BST?",
-        options: [
-          { id: "a", label: "Pre-order" },
-          { id: "b", label: "Post-order" },
-          { id: "c", label: "In-order" },
-          { id: "d", label: "Level-order" },
-        ],
-      },
-      {
-        id: "q3",
-        prompt: "What causes a binary search tree to become unbalanced?",
-        options: [
-          { id: "a", label: "Random insertion order" },
-          { id: "b", label: "Sequential insertion order" },
-          { id: "c", label: "Frequent lookups" },
-          { id: "d", label: "Using integer keys" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "quiz_2",
-    courseId: "crs_102",
-    courseTitle: "CSC 305 · Database Management Systems",
-    title: "Normalization Quiz",
-    questionCount: 2,
-    durationMinutes: 10,
-    dueAt: "In 5 days",
-    status: "completed",
-    bestScorePercent: 85,
-    questions: [
-      {
-        id: "q1",
-        prompt: "Which normal form eliminates transitive dependencies?",
-        options: [
-          { id: "a", label: "1NF" },
-          { id: "b", label: "2NF" },
-          { id: "c", label: "3NF" },
-          { id: "d", label: "BCNF" },
-        ],
-      },
-      {
-        id: "q2",
-        prompt: "A table is in 1NF when...",
-        options: [
-          { id: "a", label: "It has a primary key" },
-          { id: "b", label: "All columns contain atomic values" },
-          { id: "c", label: "It has no foreign keys" },
-          { id: "d", label: "It is fully normalized" },
-        ],
-      },
-    ],
-  },
-];
-
+export async function getQuizById(id: string): Promise<QuizDetails | null> {
+  const quiz = await getRecord<TutorQuiz>("quiz", id);
+  if (!quiz) return null;
+  const attempts = (await listRecords<Attempt>("quiz_attempt")).filter(
+    (a) => a.quizId === id,
+  );
+  return {
+    id,
+    courseId: quiz.courseId,
+    courseTitle: quiz.courseCode,
+    title: quiz.title,
+    durationMinutes: quiz.durationMinutes,
+    dueAt: "",
+    status: attempts.length ? "completed" : "not_started",
+    bestScorePercent: attempts.length
+      ? Math.max(...attempts.map((a) => a.scorePercent))
+      : null,
+    questionCount: quiz.questions.length,
+    questions: quiz.questions.map((q) => ({
+      id: q.id,
+      prompt: q.prompt,
+      options: q.options.map((label, index) => ({ id: String(index), label })),
+    })),
+  };
+}
 export async function getQuizzes(): Promise<QuizSummary[]> {
-  await delay();
-  return MOCK_QUIZZES.map(({ questions, ...summary }) => summary);
+  const quizzes = await listRecords<TutorQuiz>("quiz");
+  return (await Promise.all(quizzes.map((q) => getQuizById(q.id))))
+    .filter((q): q is QuizDetails => q !== null)
+    .map(({ questions, ...q }) => q);
 }
-
-export async function getQuizById(quizId: string): Promise<QuizDetails | null> {
-  await delay();
-  return MOCK_QUIZZES.find((quiz) => quiz.id === quizId) ?? null;
-}
-
 export async function submitQuizAttempt(
   quizId: string,
-  answers: Record<string, string>
-): Promise<{ ok: true; scorePercent: number; correctCount: number; totalCount: number } | { ok: false; error: string }> {
-  await delay();
-  const quiz = MOCK_QUIZZES.find((q) => q.id === quizId);
-
-  if (!quiz) {
-    return { ok: false, error: "Quiz not found." };
+  answers: Record<string, string>,
+) {
+  const quiz = await getRecord<TutorQuiz>("quiz", quizId);
+  if (!quiz) return { ok: false as const, error: "Quiz not found." };
+  const existing = (await listRecords<Attempt>("quiz_attempt")).find(
+    (a) => a.quizId === quizId,
+  );
+  if (existing)
+    return {
+      ok: true as const,
+      scorePercent: existing.scorePercent,
+      correctCount: existing.correctCount,
+      totalCount: existing.totalCount,
+    };
+  const session = (
+    await listRecords<{ quizId: string; expiresAt: string }>("quiz_session")
+  ).find((s) => s.quizId === quizId);
+  if (!session || Date.parse(session.expiresAt) < Date.now())
+    return {
+      ok: false as const,
+      error: "Your quiz session has expired or has not started.",
+    };
+  const { user } = await getContext();
+  try {
+    const result = gradeAnswers(quiz.questions, answers);
+    await saveRecord<Attempt>("quiz_attempt", {
+      quizId,
+      studentId: user.id,
+      courseId: quiz.courseId,
+      ...result,
+      submittedAt: new Date().toISOString(),
+    });
+    return { ok: true as const, ...result };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "Unable to submit quiz.",
+    };
   }
+}
 
-  // Mock grading: option "b" or "c" counts as correct for demo purposes,
-  // since there's no real answer key in the mock data set.
-  const totalCount = quiz.questions.length;
-  const correctCount = Object.values(answers).filter((choice) => choice === "b" || choice === "c").length;
-  const scorePercent = Math.round((correctCount / totalCount) * 100);
-
-  quiz.status = "completed";
-  quiz.bestScorePercent = Math.max(quiz.bestScorePercent ?? 0, scorePercent);
-
-  return { ok: true, scorePercent, correctCount, totalCount };
+export async function startQuiz(quizId: string) {
+  const quiz = await getRecord<TutorQuiz>("quiz", quizId);
+  if (!quiz) throw new Error("Quiz not found.");
+  const existing = (
+    await listRecords<{ quizId: string; expiresAt: string }>("quiz_session")
+  ).find((s) => s.quizId === quizId);
+  if (existing) {
+    if (Date.parse(existing.expiresAt) < Date.now())
+      throw new Error("Your quiz time has expired. Contact your tutor.");
+    return existing.expiresAt;
+  }
+  const expiresAt = new Date(
+    Date.now() + quiz.durationMinutes * 60000,
+  ).toISOString();
+  await saveRecord("quiz_session", {
+    quizId,
+    courseId: quiz.courseId,
+    expiresAt,
+  });
+  return expiresAt;
 }

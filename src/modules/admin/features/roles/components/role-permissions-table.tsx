@@ -1,5 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import type { RolePermissionGroup } from "../types";
 
 const ROLE_LABEL: Record<RolePermissionGroup["role"], string> = {
@@ -25,7 +31,14 @@ const PERMISSION_LABEL: Record<string, string> = {
   "quizzes:manage_own": "Manage own quizzes",
   "exams:manage_own": "Manage own exams",
   "gradebook:manage_own": "Manage own gradebook",
-  "attendance:manage_own": "Manage own attendance",
+  "attendance:manage_own": "Manage course attendance",
+  "attendance:students": "Manage student daily attendance",
+  "attendance:staff": "Manage Tutor and Admin attendance",
+  "attendance:policy": "Configure attendance policies",
+  "attendance:approve_student_tutor": "Approve Student and Tutor attendance",
+  "attendance:approve_admin": "Approve Admin attendance",
+  "attendance:clock_self": "Clock own arrival and departure",
+  "attendance:view_self": "View own daily attendance",
   "payments:view_own": "View own payments",
   "payments:view_all": "View all payments",
   "payments:record": "Record payments",
@@ -43,15 +56,22 @@ const PERMISSION_LABEL: Record<string, string> = {
   "ai:manage_policies": "Manage platform-wide AI policies",
 };
 
-export function RolePermissionsTable({ groups }: { groups: RolePermissionGroup[] }) {
+export function RolePermissionsTable({
+  groups,
+}: {
+  groups: RolePermissionGroup[];
+}) {
   return (
     <div className="space-y-4">
       {groups.map((group) => (
         <Card key={group.role}>
           <CardHeader>
-            <CardTitle className="text-base">{ROLE_LABEL[group.role]}</CardTitle>
+            <CardTitle className="text-base">
+              {ROLE_LABEL[group.role]}
+            </CardTitle>
             <CardDescription>
-              {group.permissions.length} permission{group.permissions.length === 1 ? "" : "s"}
+              {group.permissions.length} permission
+              {group.permissions.length === 1 ? "" : "s"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">

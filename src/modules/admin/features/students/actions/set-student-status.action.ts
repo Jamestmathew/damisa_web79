@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -8,8 +9,9 @@ import type { UserStatus } from "@/modules/admin/shared/types";
 
 export async function setStudentStatusAction(
   id: string,
-  status: UserStatus
+  status: UserStatus,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["admin"]);
   const result = await setStudentStatus(id, status);
 
   if (result.ok) {

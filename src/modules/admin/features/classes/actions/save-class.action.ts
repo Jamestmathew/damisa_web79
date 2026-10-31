@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,8 +10,9 @@ import type { ClassActionResult } from "../types";
 
 export async function saveClassAction(
   _prevState: ClassActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<ClassActionResult> {
+  await authorizeAction(["admin"]);
   try {
     const parsed = classFormSchema.safeParse({
       id: formData.get("id") || undefined,

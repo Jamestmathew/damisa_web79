@@ -1,37 +1,37 @@
 import "server-only";
-
+import { listRecords, saveRecord } from "@/shared/data/records";
 import type { AiGovernancePolicy } from "../types";
-
-function delay(ms = 150) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Single tenant for now (`tenantId: null`). When multi-tenancy lands, this
- * becomes a lookup keyed by tenant instead of a single mutable object, and
- * a future Super Admin layer can seed/override the per-tenant defaults —
- * neither Tutor's nor Admin's code needs to change for that.
- */
-const policy: AiGovernancePolicy = {
+const defaults: AiGovernancePolicy = {
   tenantId: null,
-  aiFeaturesEnabled: true,
-  studentChatEnabled: true,
-  tutorKnowledgeBaseEnabled: true,
+  aiFeaturesEnabled: false,
+  studentChatEnabled: false,
+  tutorKnowledgeBaseEnabled: false,
   allowedUploadTypes: ["pdf", "docx", "pptx", "txt", "md"],
   maxUploadSizeMb: 25,
-  storageQuotaGb: 50,
-  storageUsedGb: 12.4,
+  storageQuotaGb: 0,
+  storageUsedGb: 0,
 };
-
 export async function getAiGovernancePolicy(): Promise<AiGovernancePolicy> {
-  await delay();
-  return { ...policy };
+  const stored = (await listRecords<AiGovernancePolicy>("ai_governance"))[0];
+  return {
+    ...defaults,
+    ...stored,
+    aiFeaturesEnabled: false,
+    studentChatEnabled: false,
+    tutorKnowledgeBaseEnabled: false,
+  };
 }
-
 export async function updateAiGovernancePolicy(
-  input: Partial<Omit<AiGovernancePolicy, "tenantId" | "storageUsedGb">>
-): Promise<{ ok: true; policy: AiGovernancePolicy }> {
-  await delay();
-  Object.assign(policy, input);
-  return { ok: true, policy: { ...policy } };
+  input: Partial<Omit<AiGovernancePolicy, "tenantId" | "storageUsedGb">>,
+) {
+  const row = (await listRecords("ai_governance"))[0];
+  const policy = {
+    ...defaults,
+    ...input,
+    aiFeaturesEnabled: false,
+    studentChatEnabled: false,
+    tutorKnowledgeBaseEnabled: false,
+  };
+  await saveRecord("ai_governance", policy, row?.id);
+  return { ok: true as const, policy };
 }

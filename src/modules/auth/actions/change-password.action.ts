@@ -1,4 +1,5 @@
 "use server";
+import { RateLimitError } from "@/shared/security/rate-limit";
 
 import {
   AUTH_ERROR_MESSAGES,
@@ -53,7 +54,9 @@ export async function changePasswordAction(
       data: undefined,
       message: AUTH_SUCCESS_MESSAGES.passwordChanged,
     };
-  } catch {
+  } catch (error) {
+    if (error instanceof RateLimitError)
+      return { ok: false, error: error.message };
     return {
       ok: false,
       error: AUTH_ERROR_MESSAGES.genericError,

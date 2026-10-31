@@ -11,13 +11,20 @@ const STATUS_LABEL: Record<StudentPaymentStatus, string> = {
   overdue: "Overdue",
 };
 
-const STATUS_VARIANT: Record<StudentPaymentStatus, "success" | "secondary" | "destructive"> = {
+const STATUS_VARIANT: Record<
+  StudentPaymentStatus,
+  "success" | "secondary" | "destructive"
+> = {
   paid: "success",
   pending: "secondary",
   overdue: "destructive",
 };
 
-export function StudentPaymentsTable({ payments }: { payments: StudentPayment[] }) {
+export function StudentPaymentsTable({
+  payments,
+}: {
+  payments: StudentPayment[];
+}) {
   if (payments.length === 0) {
     return <EmptyState icon={Wallet} title="No payment history yet" />;
   }
@@ -32,15 +39,29 @@ export function StudentPaymentsTable({ payments }: { payments: StudentPayment[] 
           <div>
             <p className="font-medium text-foreground">{payment.purpose}</p>
             <p className="text-xs text-muted-foreground">
-              {payment.reference} {payment.paidAt ? `· Paid ${payment.paidAt}` : ""}
+              {payment.reference}{" "}
+              {payment.paidAt
+                ? `· Paid ${new Date(payment.paidAt).toLocaleDateString("en-NG", { timeZone: "Africa/Lagos" })}`
+                : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-foreground">₦{payment.amountNaira.toLocaleString()}</span>
-            <Badge variant={STATUS_VARIANT[payment.status]}>{STATUS_LABEL[payment.status]}</Badge>
-            <Button variant="ghost" size="icon" aria-label="Download receipt" disabled>
-              <Download className="size-4" />
-            </Button>
+            <span className="font-semibold text-foreground">
+              ₦{payment.amountNaira.toLocaleString()}
+            </span>
+            <Badge variant={STATUS_VARIANT[payment.status]}>
+              {STATUS_LABEL[payment.status]}
+            </Badge>
+            {payment.status === "paid" && (
+              <Button variant="ghost" size="icon" asChild>
+                <a
+                  aria-label="Download receipt"
+                  href={`/student/payments/${payment.id}/receipt`}
+                >
+                  <Download className="size-4" />
+                </a>
+              </Button>
+            )}
           </div>
         </div>
       ))}

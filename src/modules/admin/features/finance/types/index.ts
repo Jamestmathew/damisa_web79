@@ -3,6 +3,8 @@ import type { PaymentStatus } from "@/modules/admin/shared/types";
 export type PaymentMethod = "card" | "bank_transfer" | "cash" | "manual";
 
 export interface PaymentRecord {
+  earnedOn?: string;
+  studentId?: string | null;
   id: string;
   payerName: string;
   payerEmail: string;

@@ -5,6 +5,8 @@ export interface AdminClass {
   teacher: string;
   studentCount: number;
   schedule: string;
+  studentIds?: string[];
+  courseIds?: string[];
 }
 
 export type ClassActionResult =

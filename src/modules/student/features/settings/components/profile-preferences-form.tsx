@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -23,11 +24,19 @@ import {
 } from "../validation/preferences.schema";
 import type { ProfilePreferences, SettingsActionResult } from "../types";
 
-export function ProfilePreferencesForm({ initialValues }: { initialValues: ProfilePreferences }) {
+export function ProfilePreferencesForm({
+  initialValues,
+}: {
+  initialValues: ProfilePreferences;
+}) {
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<SettingsActionResult | null>(null);
 
-  const form = useForm<ProfilePreferencesSchema>({
+  const form = useForm<
+    z.input<typeof profilePreferencesSchema>,
+    unknown,
+    ProfilePreferencesSchema
+  >({
     resolver: zodResolver(profilePreferencesSchema),
     defaultValues: initialValues,
   });
@@ -44,7 +53,8 @@ export function ProfilePreferencesForm({ initialValues }: { initialValues: Profi
 
       if (!result.ok && result.fieldErrors) {
         for (const [field, message] of Object.entries(result.fieldErrors)) {
-          if (message) form.setError(field as keyof ProfilePreferencesSchema, { message });
+          if (message)
+            form.setError(field as keyof ProfilePreferencesSchema, { message });
         }
       }
     });
@@ -59,7 +69,11 @@ export function ProfilePreferencesForm({ initialValues }: { initialValues: Profi
         />
       ) : null}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+      >
         <FormField
           control={form.control}
           name="displayName"
@@ -81,14 +95,22 @@ export function ProfilePreferencesForm({ initialValues }: { initialValues: Profi
             <FormItem>
               <FormLabel>Bio</FormLabel>
               <FormControl>
-                <Textarea rows={3} placeholder="A short bio (optional)" {...field} />
+                <Textarea
+                  rows={3}
+                  placeholder="A short bio (optional)"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <LoadingButton type="submit" isLoading={isPending} loadingText="Saving...">
+        <LoadingButton
+          type="submit"
+          isLoading={isPending}
+          loadingText="Saving..."
+        >
           Save profile
         </LoadingButton>
       </form>

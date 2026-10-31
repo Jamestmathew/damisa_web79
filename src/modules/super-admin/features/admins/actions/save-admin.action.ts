@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -12,6 +13,7 @@ export async function saveAdminAction(
   _prevState: AdminActionResult | null,
   formData: FormData,
 ): Promise<AdminActionResult> {
+  await authorizeAction(["super_admin"]);
   await requirePermission("admins:create");
 
   try {

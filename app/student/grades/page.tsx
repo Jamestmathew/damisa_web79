@@ -16,8 +16,14 @@ export default async function GradesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Grades" description="Your performance across all courses" />
-      <GradeSummaryCard gpa={overview.gpa} courseSummaries={overview.courseSummaries} />
+      <PageHeader
+        title="Grades"
+        description="CA and exam marks; default weighting CA 30% / Exam 70%. Your performance across all courses"
+      />
+      <GradeSummaryCard
+        gpa={overview.gpa}
+        courseSummaries={overview.courseSummaries}
+      />
 
       <Card>
         <CardHeader>

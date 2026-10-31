@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,8 +10,9 @@ import type { AdmissionApplication } from "../types";
 
 export async function setAdmissionStatusAction(
   id: string,
-  status: AdmissionApplication["status"]
+  status: AdmissionApplication["status"],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["admin"]);
   await requirePermission("academic_records:manage");
 
   const result = await setAdmissionStatus(id, status);

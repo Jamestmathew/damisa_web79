@@ -14,11 +14,18 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
         </div>
       ) : null}
 
-      <div className={cn("max-w-[80%] space-y-2", !isAssistant && "flex flex-col items-end")}>
+      <div
+        className={cn(
+          "max-w-[80%] space-y-2",
+          !isAssistant && "flex flex-col items-end",
+        )}
+      >
         <div
           className={cn(
             "rounded-lg px-4 py-2.5 text-sm",
-            isAssistant ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+            isAssistant
+              ? "bg-secondary text-secondary-foreground"
+              : "bg-primary text-primary-foreground",
           )}
         >
           {message.content}
@@ -33,9 +40,15 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
               >
                 <FileText className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                 <div>
-                  <p className="font-medium text-foreground">{citation.documentName}</p>
-                  <p className="text-muted-foreground">{citation.courseTitle}</p>
-                  <p className="mt-1 italic text-muted-foreground">"{citation.snippet}"</p>
+                  <p className="font-medium text-foreground">
+                    {citation.documentName}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {citation.courseTitle}
+                  </p>
+                  <p className="mt-1 italic text-muted-foreground">
+                    &quot;{citation.snippet}&quot;
+                  </p>
                 </div>
               </div>
             ))}

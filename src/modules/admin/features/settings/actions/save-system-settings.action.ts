@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -10,8 +11,9 @@ import type { SettingsActionResult } from "../types";
 
 export async function saveSystemSettingsAction(
   _prevState: SettingsActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<SettingsActionResult> {
+  await authorizeAction(["admin"]);
   await requirePermission("academic_records:manage");
 
   try {
@@ -19,7 +21,8 @@ export async function saveSystemSettingsAction(
       institutionName: formData.get("institutionName"),
       academicSession: formData.get("academicSession"),
       supportEmail: formData.get("supportEmail"),
-      allowManualPaymentRecording: formData.get("allowManualPaymentRecording") === "on",
+      allowManualPaymentRecording:
+        formData.get("allowManualPaymentRecording") === "on",
     });
 
     if (!parsed.success) {

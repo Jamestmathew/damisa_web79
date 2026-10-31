@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { redirect } from "next/navigation";
 
@@ -13,8 +14,9 @@ export type CourseBuilderActionResult =
 
 export async function createCourseAction(
   _prevState: CourseBuilderActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<CourseBuilderActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   const parsed = createCourseSchema.safeParse({

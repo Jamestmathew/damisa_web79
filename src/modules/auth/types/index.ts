@@ -20,6 +20,7 @@ export interface AuthUser {
   emailVerified: boolean;
   avatarUrl?: string | null;
   createdAt: string;
+  officeId?: string | null;
 
   role: Role;
   status: AccountStatus;

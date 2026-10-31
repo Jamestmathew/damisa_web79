@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -13,15 +14,17 @@ export type AiGovernanceActionResult =
 
 export async function saveAiGovernanceAction(
   _prevState: AiGovernanceActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<AiGovernanceActionResult> {
+  await authorizeAction(["admin"]);
   await requirePermission("ai:manage_governance");
 
   try {
     const parsed = aiGovernanceFormSchema.safeParse({
       aiFeaturesEnabled: formData.get("aiFeaturesEnabled") === "on",
       studentChatEnabled: formData.get("studentChatEnabled") === "on",
-      tutorKnowledgeBaseEnabled: formData.get("tutorKnowledgeBaseEnabled") === "on",
+      tutorKnowledgeBaseEnabled:
+        formData.get("tutorKnowledgeBaseEnabled") === "on",
       maxUploadSizeMb: formData.get("maxUploadSizeMb"),
       storageQuotaGb: formData.get("storageQuotaGb"),
       allowedUploadTypes: formData.getAll("allowedUploadTypes"),

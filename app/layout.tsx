@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 
 import { getOptionalSession } from "@/modules/auth/lib/route-guard";
-import { authService } from "@/modules/auth/services";
 import { SessionProvider } from "@/modules/auth/hooks/session-provider";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "App",
-  description: "Production app with a self-contained Authentication module",
+  title: {
+    default: "SMI Learning Portal",
+    template: "%s | SMI Learning Portal",
+  },
+  description: "Learning, classes, and academic administration",
 };
 
 export default async function RootLayout({
@@ -17,7 +19,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session = await getOptionalSession();
-  const user = session ? await authService.getUserByEmail(session.email) : null;
+  const user = session;
 
   return (
     <html lang="en" suppressHydrationWarning>

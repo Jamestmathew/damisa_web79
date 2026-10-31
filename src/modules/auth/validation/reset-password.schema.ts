@@ -4,7 +4,7 @@ import { strongPasswordSchema } from "@/modules/auth/validation/register.schema"
 
 export const resetPasswordSchema = z
   .object({
-    token: z.string().min(1, "Missing reset token"),
+    token: z.string(),
     password: strongPasswordSchema,
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })

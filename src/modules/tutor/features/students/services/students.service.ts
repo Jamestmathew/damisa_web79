@@ -1,25 +1,62 @@
 import "server-only";
-
+import { getGradebookRows } from "@/modules/tutor/features/gradebook/services/gradebook.service";
+import { getOfficePeople } from "@/shared/data/people";
+import { listRecords } from "@/shared/data/records";
 import type { TutorStudent } from "../types";
-
-function delay(ms = 200) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-const students: TutorStudent[] = [
-  { id: "std_1", name: "Chidinma Okoro", email: "c.okoro@student.school.edu", courseTitle: "Data Structures & Algorithms", courseCode: "CSC 301", progressPercent: 72, averageGrade: 88, attendancePercent: 96 },
-  { id: "std_2", name: "Amina Yusuf", email: "a.yusuf@student.school.edu", courseTitle: "Data Structures & Algorithms", courseCode: "CSC 301", progressPercent: 45, averageGrade: 74, attendancePercent: 88 },
-  { id: "std_3", name: "Emeka Nwosu", email: "e.nwosu@student.school.edu", courseTitle: "Database Management Systems", courseCode: "CSC 305", progressPercent: 60, averageGrade: 81, attendancePercent: 91 },
-  { id: "std_4", name: "Tunde Bakare", email: "t.bakare@student.school.edu", courseTitle: "Database Management Systems", courseCode: "CSC 305", progressPercent: 30, averageGrade: 65, attendancePercent: 79 },
-];
-
-/** Tutors can only view their own students — this simulates that filter server-side. */
 export async function getTutorStudents(): Promise<TutorStudent[]> {
-  await delay();
-  return [...students];
-}
-
-export async function getTutorStudentById(id: string): Promise<TutorStudent | null> {
-  await delay();
-  return students.find((s) => s.id === id) ?? null;
+  const [people, courses, classes] = await Promise.all([
+    getOfficePeople(),
+    listRecords<{ title: string; code: string }>("course"),
+    listRecords<{ studentIds?: string[]; courseIds?: string[] }>("class"),
+  ]);
+  const [grades, progress, lessons, attendance] = await Promise.all([
+    getGradebookRows(),
+    listRecords<{ studentId: string; courseId: string }>("lesson_progress"),
+    listRecords<{ courseId: string }>("lesson"),
+    listRecords<{ studentId: string; courseId: string; mark: string }>(
+      "attendance",
+    ),
+  ]);
+  return people.flatMap((p) =>
+    courses
+      .filter((c) =>
+        classes.some(
+          (k) => k.studentIds?.includes(p.id) && k.courseIds?.includes(c.id),
+        ),
+      )
+      .map((c) => ({
+        id: `${p.id}:${c.id}`,
+        name: p.name,
+        email: p.email,
+        courseTitle: c.title,
+        courseCode: c.code,
+        progressPercent: lessons.filter((l) => l.courseId === c.id).length
+          ? Math.round(
+              (progress.filter(
+                (k) => k.courseId === c.id && k.studentId === p.id,
+              ).length /
+                lessons.filter((l) => l.courseId === c.id).length) *
+                100,
+            )
+          : 0,
+        averageGrade:
+          grades.find((g) => g.id === `${p.id}:${c.id}`)?.overallPercent ?? 0,
+        attendancePercent: attendance.filter(
+          (a) => a.studentId === p.id && a.courseId === c.id,
+        ).length
+          ? Math.round(
+              (attendance.filter(
+                (a) =>
+                  a.studentId === p.id &&
+                  a.courseId === c.id &&
+                  a.mark !== "absent",
+              ).length /
+                attendance.filter(
+                  (a) => a.studentId === p.id && a.courseId === c.id,
+                ).length) *
+                100,
+            )
+          : 0,
+      })),
+  );
 }

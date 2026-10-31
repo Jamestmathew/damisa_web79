@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,8 +10,9 @@ import type { AttendanceMark } from "../types";
 
 export async function saveAttendanceAction(
   courseId: string,
-  marks: Record<string, AttendanceMark>
+  marks: Record<string, AttendanceMark>,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["tutor"]);
   await requirePermission("attendance:manage_own");
 
   const result = await saveAttendance(courseId, marks);

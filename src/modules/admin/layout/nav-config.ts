@@ -3,6 +3,17 @@ import type { RoleNavItem } from "@/shared/layout";
 
 export const adminNavConfig: RoleNavItem[] = [
   {
+    label: "Tutor approvals",
+    href: "/admin/tutor-attendance",
+    icon: "attendance",
+  },
+  {
+    label: "Student attendance",
+    href: "/admin/attendance",
+    icon: "attendance",
+  },
+  { label: "My attendance", href: "/admin/my-attendance", icon: "attendance" },
+  {
     label: "Dashboard",
     href: ADMIN_ROUTES.dashboard,
     icon: "dashboard",

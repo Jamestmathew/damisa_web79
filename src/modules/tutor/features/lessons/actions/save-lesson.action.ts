@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -10,8 +11,9 @@ import type { LessonActionResult } from "../types";
 
 export async function saveLessonAction(
   _prevState: LessonActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<LessonActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("courses:manage_own");
 
   try {
@@ -39,7 +41,9 @@ export async function saveLessonAction(
     }
 
     const { id, courseId, ...input } = parsed.data;
-    const result = id ? await updateLesson(id, input) : await createLesson({ courseId, ...input });
+    const result = id
+      ? await updateLesson(id, input)
+      : await createLesson({ courseId, ...input });
 
     if (!result.ok) return { ok: false, error: result.error };
 

@@ -1,48 +1,44 @@
 import Link from "next/link";
-import { CheckCircle2, Circle, PlayCircle } from "lucide-react";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { STUDENT_ROUTES } from "@/modules/student/shared/constants";
 import type { CourseModule } from "../types";
 
-export function CourseModulesList({
+import { listRecords } from "@/shared/data/records";
+import type { TutorLesson } from "@/modules/tutor/features/lessons/types";
+
+export async function CourseModulesList({
   courseId,
-  modules,
 }: {
   courseId: string;
   modules: CourseModule[];
 }) {
+  const lessons = (await listRecords<TutorLesson>("lesson")).filter(
+    (l) => l.courseId === courseId,
+  );
   return (
-    <div className="space-y-4">
-      {modules.map((module) => {
-        const isComplete = module.completedLessonCount === module.lessonCount;
-
-        return (
-          <Card key={module.id}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">{module.title}</CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {module.completedLessonCount}/{module.lessonCount} lessons
-              </span>
-            </CardHeader>
-            <CardContent>
+    <div className="space-y-3">
+      {lessons.length ? (
+        lessons.map((lesson) => (
+          <Card key={lesson.id}>
+            <CardContent className="p-4">
               <Link
-                href={STUDENT_ROUTES.lesson(courseId, `${module.id}-lesson-1`)}
-                className="flex items-center gap-2 text-sm text-primary hover:underline"
+                className="text-primary hover:underline"
+                href={STUDENT_ROUTES.lesson(courseId, lesson.id)}
               >
-                {isComplete ? (
-                  <CheckCircle2 className="size-4" />
-                ) : module.completedLessonCount > 0 ? (
-                  <PlayCircle className="size-4" />
-                ) : (
-                  <Circle className="size-4" />
-                )}
-                {isComplete ? "Review module" : "Continue module"}
+                {lesson.title}
               </Link>
+              <p className="text-sm text-muted-foreground">
+                {lesson.contentType} · {lesson.durationMinutes} minutes
+              </p>
             </CardContent>
           </Card>
-        );
-      })}
+        ))
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Your tutor has not published lessons yet.
+        </p>
+      )}
     </div>
   );
 }

@@ -41,11 +41,7 @@ export const studentNavConfig: StudentNavItem[] = [
     href: STUDENT_ROUTES.grades,
     icon: "grades",
   },
-  {
-    label: "Payments",
-    href: STUDENT_ROUTES.payments,
-    icon: "payments",
-  },
+  { label: "Payments", href: STUDENT_ROUTES.payments, icon: "payments" },
   {
     label: "Attendance",
     href: STUDENT_ROUTES.attendance,

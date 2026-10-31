@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -9,8 +10,9 @@ import type { SettingsActionResult } from "../types";
 
 export async function savePreferencesAction(
   _prevState: SettingsActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<SettingsActionResult> {
+  await authorizeAction(["tutor"]);
   const parsed = preferencesFormSchema.safeParse({
     emailOnSubmission: formData.get("emailOnSubmission") === "on",
     emailOnAnnouncementReply: formData.get("emailOnAnnouncementReply") === "on",

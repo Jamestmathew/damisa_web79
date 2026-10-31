@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -18,7 +24,10 @@ import {
 import { LoadingButton, FormStatusMessage } from "@/modules/auth/components/ui";
 import { AI_ALLOWED_UPLOAD_TYPES, type AiGovernancePolicy } from "@/shared/ai";
 
-import { saveAiGovernanceAction, type AiGovernanceActionResult } from "../actions/save-ai-governance.action";
+import {
+  saveAiGovernanceAction,
+  type AiGovernanceActionResult,
+} from "../actions/save-ai-governance.action";
 import {
   aiGovernanceFormSchema,
   type AiGovernanceFormSchema,
@@ -40,7 +49,10 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
     },
   });
 
-  const allowedTypes = form.watch("allowedUploadTypes");
+  const allowedTypes = useWatch({
+    control: form.control,
+    name: "allowedUploadTypes",
+  });
 
   function toggleType(type: string) {
     const next = allowedTypes.includes(type)
@@ -55,17 +67,22 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
       const formData = new FormData();
       if (values.aiFeaturesEnabled) formData.set("aiFeaturesEnabled", "on");
       if (values.studentChatEnabled) formData.set("studentChatEnabled", "on");
-      if (values.tutorKnowledgeBaseEnabled) formData.set("tutorKnowledgeBaseEnabled", "on");
+      if (values.tutorKnowledgeBaseEnabled)
+        formData.set("tutorKnowledgeBaseEnabled", "on");
       formData.set("maxUploadSizeMb", String(values.maxUploadSizeMb));
       formData.set("storageQuotaGb", String(values.storageQuotaGb));
-      values.allowedUploadTypes.forEach((type) => formData.append("allowedUploadTypes", type));
+      values.allowedUploadTypes.forEach((type) =>
+        formData.append("allowedUploadTypes", type),
+      );
 
       const result = await saveAiGovernanceAction(null, formData);
       setState(result);
     });
   }
 
-  const usagePercent = Math.round((policy.storageUsedGb / policy.storageQuotaGb) * 100);
+  const usagePercent = Math.round(
+    (policy.storageUsedGb / policy.storageQuotaGb) * 100,
+  );
 
   return (
     <div className="space-y-6">
@@ -73,7 +90,8 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
         <CardHeader>
           <CardTitle className="text-base">Storage usage</CardTitle>
           <CardDescription>
-            {policy.storageUsedGb.toFixed(1)} GB of {policy.storageQuotaGb} GB used across all course knowledge bases
+            {policy.storageUsedGb.toFixed(1)} GB of {policy.storageQuotaGb} GB
+            used across all course knowledge bases
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,8 +103,8 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
         <CardHeader>
           <CardTitle className="text-base">AI feature governance</CardTitle>
           <CardDescription>
-            Controls what Student and Tutor can do with AI — not the AI provider itself, which is reserved
-            for a future platform-level configuration.
+            Controls what Student and Tutor can do with AI — not the AI provider
+            itself, which is reserved for a future platform-level configuration.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,7 +116,11 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
               />
             ) : null}
 
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-5"
+              noValidate
+            >
               <div className="space-y-3">
                 <FormField
                   control={form.control}
@@ -132,7 +154,9 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
                           className="h-4 w-4 rounded border-input text-primary"
                         />
                       </FormControl>
-                      <FormLabel className="cursor-pointer font-normal">Student AI Chat</FormLabel>
+                      <FormLabel className="cursor-pointer font-normal">
+                        Student AI Chat
+                      </FormLabel>
                     </FormItem>
                   )}
                 />
@@ -149,7 +173,9 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
                           className="h-4 w-4 rounded border-input text-primary"
                         />
                       </FormControl>
-                      <FormLabel className="cursor-pointer font-normal">Tutor Knowledge Base uploads</FormLabel>
+                      <FormLabel className="cursor-pointer font-normal">
+                        Tutor Knowledge Base uploads
+                      </FormLabel>
                     </FormItem>
                   )}
                 />
@@ -192,7 +218,10 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
                     <FormLabel>Allowed upload types</FormLabel>
                     <div className="flex flex-wrap gap-3">
                       {AI_ALLOWED_UPLOAD_TYPES.map((type) => (
-                        <label key={type} className="flex items-center gap-1.5 text-sm">
+                        <label
+                          key={type}
+                          className="flex items-center gap-1.5 text-sm"
+                        >
                           <input
                             type="checkbox"
                             checked={allowedTypes.includes(type)}
@@ -208,7 +237,11 @@ export function AiGovernanceForm({ policy }: { policy: AiGovernancePolicy }) {
                 )}
               />
 
-              <LoadingButton type="submit" isLoading={isPending} loadingText="Saving...">
+              <LoadingButton
+                type="submit"
+                isLoading={isPending}
+                loadingText="Saving..."
+              >
                 Save AI governance settings
               </LoadingButton>
             </form>

@@ -1,4 +1,5 @@
 import "server-only";
+import { invalidateSessions } from "@/shared/security/revoke-sessions";
 
 import { createAdminClient } from "@/supabase/admin";
 import { requirePermission } from "@/shared/rbac";
@@ -31,40 +32,12 @@ async function getCurrentAdminOfficeId(): Promise<
 > {
   const user = await requirePermission("users:view_all");
 
-  const supabase = createAdminClient();
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id, role, office_id")
-    .eq("id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-
-  if (error) {
+  if (user.role !== "admin" || !user.officeId)
     return {
       ok: false,
-      error: `Failed to load Admin profile: ${error.message}`,
+      error: "Your Admin account must be assigned to an office.",
     };
-  }
-
-  if (!profile) {
-    return {
-      ok: false,
-      error: "Admin profile not found.",
-    };
-  }
-
-  if (!profile.office_id) {
-    return {
-      ok: false,
-      error: "Your Admin account is not assigned to an office.",
-    };
-  }
-
-  return {
-    ok: true,
-    officeId: profile.office_id,
-  };
+  return { ok: true, officeId: user.officeId };
 }
 
 /**
@@ -195,10 +168,7 @@ export async function createUser(input: {
    * generate an internal email-like identifier from the matric number.
    */
   const email =
-    input.email.trim() ||
-    `${input.matricNumber
-      ?.toLowerCase()
-      .replace(/[^a-z0-9]/g, "")}@students.local`;
+    input.email.trim() || `student-${crypto.randomUUID()}@students.invalid`;
 
   if (input.role === "student" && !input.matricNumber?.trim()) {
     return {
@@ -250,7 +220,9 @@ export async function createUser(input: {
       office_id: officeResult.officeId,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id")
+    .single();
 
   if (profileError) {
     /*
@@ -375,6 +347,8 @@ export async function setUserStatus(
   id: string,
   status: AdminUserRow["status"],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!["active", "inactive", "suspended", "archived"].includes(status))
+    return { ok: false, error: "Invalid account status." };
   const managedUser = await getManagedUser(id);
 
   if (!managedUser.ok) {
@@ -400,6 +374,7 @@ export async function setUserStatus(
     };
   }
 
+  await invalidateSessions(id);
   return { ok: true };
 }
 
@@ -428,6 +403,8 @@ export async function resetUserPassword(
       error: error.message,
     };
   }
+
+  await invalidateSessions(id);
 
   return {
     ok: true,

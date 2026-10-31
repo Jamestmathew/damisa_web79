@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -10,8 +11,9 @@ import type { ExamActionResult } from "../types";
 
 export async function scheduleExamAction(
   _prevState: ExamActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<ExamActionResult> {
+  await authorizeAction(["tutor"]);
   await requirePermission("exams:manage_own");
 
   const parsed = examFormSchema.safeParse({
@@ -46,7 +48,10 @@ export async function scheduleExamAction(
   return { ok: true, message: "Exam scheduled." };
 }
 
-export async function deleteExamAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteExamAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await authorizeAction(["tutor"]);
   await requirePermission("exams:manage_own");
 
   const result = await deleteExam(id);

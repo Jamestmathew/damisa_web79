@@ -7,7 +7,7 @@ export function AiChatDisabledNotice() {
     <EmptyState
       icon={Sparkles}
       title="AI Chat is currently unavailable"
-      description="Your institution has temporarily disabled this feature. Please check back later."
+      description="Course AI is being prepared. Chat will be available after the course knowledge base and AI provider are connected."
     />
   );
 }

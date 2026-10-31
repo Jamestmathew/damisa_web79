@@ -3,7 +3,13 @@
 import { useState, useTransition } from "react";
 import { Sparkles, Send } from "lucide-react";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormStatusMessage } from "@/modules/auth/components/ui";
@@ -30,7 +36,10 @@ export function TestCourseAiPanel() {
         return;
       }
 
-      setExchanges((prev) => [...prev, { id: `ex_${Date.now()}`, question: q, answer: result.answer }]);
+      setExchanges((prev) => [
+        ...prev,
+        { id: `ex_${Date.now()}`, question: q, answer: result.answer },
+      ]);
       setQuestion("");
     });
   }
@@ -38,9 +47,10 @@ export function TestCourseAiPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Test your course's AI</CardTitle>
+        <CardTitle className="text-base">Test your course&apos;s AI</CardTitle>
         <CardDescription>
-          Preview how students will experience AI Chat for this course, grounded in what you've uploaded.
+          Preview how students will experience AI Chat for this course, grounded
+          in what you&apos;ve uploaded.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -50,7 +60,9 @@ export function TestCourseAiPanel() {
           <div className="space-y-3">
             {exchanges.map((exchange) => (
               <div key={exchange.id} className="space-y-2">
-                <p className="text-sm font-medium text-foreground">{exchange.question}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {exchange.question}
+                </p>
                 <div className="flex items-start gap-2 rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
                   <Sparkles className="mt-0.5 size-4 shrink-0" />
                   <p>{exchange.answer}</p>
@@ -67,7 +79,11 @@ export function TestCourseAiPanel() {
             onKeyDown={(e) => e.key === "Enter" && handleAsk()}
             placeholder="Ask a question a student might ask..."
           />
-          <Button onClick={handleAsk} disabled={isPending || !question.trim()} aria-label="Ask">
+          <Button
+            onClick={handleAsk}
+            disabled={isPending || !question.trim()}
+            aria-label="Ask"
+          >
             <Send className="size-4" />
           </Button>
         </div>

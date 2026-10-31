@@ -1,4 +1,5 @@
 "use server";
+import { authorizeAction } from "@/shared/security/action";
 
 import { revalidatePath } from "next/cache";
 
@@ -10,8 +11,9 @@ import type { UserActionResult } from "../types";
 
 export async function saveUserAction(
   _prevState: UserActionResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<UserActionResult> {
+  await authorizeAction(["admin"]);
   // Enforced here, not just hidden in the UI: only an Admin with
   // users:create/users:edit may reach this far, regardless of what the
   // client sent. Deliberately outside the try/catch below — `redirect()`
@@ -48,14 +50,24 @@ export async function saveUserAction(
 
     if (id) {
       const result = await updateUser(id, input);
-      if (!result.ok) return { ok: false, error: result.error, fieldErrors: result.fieldErrors };
+      if (!result.ok)
+        return {
+          ok: false,
+          error: result.error,
+          fieldErrors: result.fieldErrors,
+        };
 
       revalidatePath(ADMIN_ROUTES.users);
       return { ok: true, message: "User updated." };
     }
 
     const result = await createUser({ ...input, email: input.email ?? "" });
-    if (!result.ok) return { ok: false, error: result.error, fieldErrors: result.fieldErrors };
+    if (!result.ok)
+      return {
+        ok: false,
+        error: result.error,
+        fieldErrors: result.fieldErrors,
+      };
 
     revalidatePath(ADMIN_ROUTES.users);
     return {

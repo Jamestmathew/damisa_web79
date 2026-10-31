@@ -72,7 +72,7 @@ function TemporaryCredentialNotice({ password }: { password: string }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Share this with the admin securely — it won't be shown again.
+        Share this with the admin securely — it won&apos;t be shown again.
       </p>
     </div>
   );
