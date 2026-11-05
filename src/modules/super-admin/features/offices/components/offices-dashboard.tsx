@@ -65,6 +65,7 @@ export function OfficesDashboard({
         />
         <DataBarChart
           title="Students by office"
+          showDataTable={false}
           description="Current student accounts · top eight offices"
           points={[...offices]
             .sort((a, b) => b.totalStudents - a.totalStudents)

@@ -9,12 +9,14 @@ export function DataBarChart({
   points,
   format = "number",
   tone = "navy",
+  showDataTable = true,
 }: {
   title: string;
   description?: string;
   points: ChartPoint[];
   format?: "number" | "naira" | "percent";
   tone?: "navy" | "orange";
+  showDataTable?: boolean;
 }) {
   const rows = points
     .filter((p) => Number.isFinite(p.value) && p.value >= 0)
@@ -132,26 +134,28 @@ export function DataBarChart({
                 {display(maximum)}
               </text>
             </svg>
-            <details className="mt-2 text-xs text-muted-foreground">
-              <summary className="cursor-pointer">View chart data</summary>
-              <table className="mt-2 w-full">
-                <caption className="sr-only">{title} values</caption>
-                <thead>
-                  <tr>
-                    <th className="text-left">Category</th>
-                    <th className="text-right">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((p, i) => (
-                    <tr key={i}>
-                      <td>{p.label}</td>
-                      <td className="text-right">{display(p.value)}</td>
+            {showDataTable && (
+              <details className="mt-2 text-xs text-muted-foreground">
+                <summary className="cursor-pointer">View chart data</summary>
+                <table className="mt-2 w-full">
+                  <caption className="sr-only">{title} values</caption>
+                  <thead>
+                    <tr>
+                      <th className="text-left">Category</th>
+                      <th className="text-right">Value</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
+                  </thead>
+                  <tbody>
+                    {rows.map((p, i) => (
+                      <tr key={i}>
+                        <td>{p.label}</td>
+                        <td className="text-right">{display(p.value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+            )}
           </figure>
         )}
       </CardContent>
