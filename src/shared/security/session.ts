@@ -1,4 +1,5 @@
 import "server-only";
+import { sessionSigningKey } from "./session-config";
 import { clearRequestCache } from "./request-cache";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
@@ -10,10 +11,7 @@ import {
 } from "./policy";
 
 function secret() {
-  const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32)
-    throw new Error("SESSION_SECRET must contain at least 32 characters.");
-  return new TextEncoder().encode(value);
+  return sessionSigningKey(process.env.SESSION_SECRET);
 }
 
 export async function setSessionBoundary(

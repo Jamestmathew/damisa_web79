@@ -1,4 +1,5 @@
 "use server";
+import { SessionConfigurationError } from "@/shared/security/session-config";
 import { redirect } from "next/navigation";
 import { RateLimitError } from "@/shared/security/rate-limit";
 
@@ -52,7 +53,10 @@ export async function loginAction(
 
     return {
       ok: false,
-      error: AUTH_ERROR_MESSAGES.genericError,
+      error:
+        error instanceof SessionConfigurationError
+          ? "Sign-in is unavailable because deployment setup is incomplete. Please contact your administrator (AUTH_CONFIGURATION)."
+          : AUTH_ERROR_MESSAGES.genericError,
     };
   }
   redirect(destination!);

@@ -1,6 +1,6 @@
 # SMI Learning Portal
 
-A Next.js / React / Supabase portal with separate Student, Tutor, Admin, and Super Admin areas. The recovered source is from `Jamestmathew/damisa_web79`; the existing production URL is https://smiweb79.vercel.app.
+A Next.js / React / Supabase portal with separate Student, Tutor, Admin, and Super Admin areas. The recovered source is from `Jamestmathew/damisa_web79`; the existing production URL is https://damisaweb.vercel.app.
 
 ## Run locally
 
@@ -65,7 +65,7 @@ Notification preferences are saved per user. Scheduled notification delivery and
 
 Set `NEXT_PUBLIC_SITE_URL` to the origin serving this app. Add the production and local callback URLs to **Supabase Auth → URL Configuration → Redirect URLs**:
 
-- `https://smiweb79.vercel.app/auth/callback`
+- `https://damisaweb.vercel.app/auth/callback`
 - `http://localhost:3000/auth/callback`
 
 The standard Supabase email link supports the same-browser PKCE callback. For a token-hash recovery template, use:
@@ -83,7 +83,7 @@ Recovery links create a separate signed ten-minute recovery cookie. A submitted 
 1. Apply all database migrations and run `npm run check:database`.
 2. Keep the existing Supabase variables and `CRON_SECRET` in Vercel.
 3. Add a cryptographically random `SESSION_SECRET` of at least 32 characters (`openssl rand -hex 32`). Keep the same value across instances of a deployment; rotating it signs users out.
-4. Set `NEXT_PUBLIC_SITE_URL=https://smiweb79.vercel.app` in the Production environment. Configure each Preview origin separately for email redirects when testing recovery.
+4. Set `NEXT_PUBLIC_SITE_URL=https://damisaweb.vercel.app` in the Production environment. Configure each Preview origin separately for email redirects when testing recovery.
 5. Use `npm run build` and deploy the reviewed source to the existing project. A Git push to an auto-deploying production branch may publish immediately.
 
 No gateway/provider key is needed. Rate limits use atomic PostgreSQL counters across Vercel instances and fail closed if the database protection is unavailable. Auth routes have account and platform-address limits; authenticated mutations also have per-user limits. On Vercel the platform's overwritten forwarded-address header is used, and local development shares a local bucket. The maintenance job at `/cron/daily` removes expired counters and never reactivates accounts. `CRON_SECRET` must be configured for the job to run.

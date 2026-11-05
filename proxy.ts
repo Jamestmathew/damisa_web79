@@ -1,3 +1,4 @@
+import { sessionSigningKey } from "@/shared/security/session-config";
 import { jwtVerify } from "jose";
 import { SESSION_COOKIE } from "@/shared/security/policy";
 import { createServerClient } from "@supabase/ssr";
@@ -59,7 +60,7 @@ export async function proxy(request: NextRequest) {
     try {
       const { payload } = await jwtVerify(
         token,
-        new TextEncoder().encode(process.env.SESSION_SECRET),
+        sessionSigningKey(process.env.SESSION_SECRET),
         { algorithms: ["HS256"], issuer: "damisa-lms", audience: "session" },
       );
       sessionVersion = payload.version;
