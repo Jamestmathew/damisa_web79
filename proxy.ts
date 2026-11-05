@@ -1,6 +1,6 @@
 import { sessionSigningKey } from "@/shared/security/session-config";
-import { jwtVerify } from "jose";
-import { SESSION_COOKIE } from "@/shared/security/policy";
+import { verifySessionState } from "@/shared/security/session-state";
+import { IDLE_COOKIE, SESSION_COOKIE } from "@/shared/security/policy";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -58,13 +58,14 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (user && token && process.env.SESSION_SECRET) {
     try {
-      const { payload } = await jwtVerify(
+      const state = await verifySessionState(
         token,
+        request.cookies.get(IDLE_COOKIE)?.value,
         sessionSigningKey(process.env.SESSION_SECRET),
-        { algorithms: ["HS256"], issuer: "damisa-lms", audience: "session" },
+        user.id,
       );
-      sessionVersion = payload.version;
-      boundaryValid = payload.sub === user.id && payload.purpose === "session";
+      sessionVersion = state?.version;
+      boundaryValid = !!state;
     } catch {
       /* Expired or invalid sessions must sign in again. */
     }

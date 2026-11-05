@@ -32,7 +32,7 @@ The first Super Admin must already exist in Supabase Auth and have a correspondi
 - **Tutors, Admins, Super Admins:** email address and password.
 - Super Admin provisions Admin accounts and assigns offices. Admin provisions students/tutors within their own office.
 - Students without email receive a unique internal Auth identifier; they still sign in with their matric number. Their password can be reset by their Admin.
-- Active status is checked on every server-side authorization. Signed session boundaries expire after 24 hours, or 30 days when Remember Me is selected. Browser-session cookies are used when Remember Me is off.
+- Active status is checked on every server-side authorization. With Remember me enabled, the signed browser session persists for up to 24 hours. Without Remember me, a separate signed idle proof expires after 10 minutes and can only be renewed by user activity while it is still valid. Fresh tabs require sign-in through a browser tab marker; the absolute signed-session cap is 24 hours.
 - Password resets and account-status changes invalidate earlier application sessions through `session_version`. Password changes require the current password. Logout clears both Supabase and application cookies.
 - All roles can change passwords at `/settings/change-password`; the Student settings page also has its existing password form.
 
@@ -126,3 +126,15 @@ Students and Super Admin cannot self-clock. Repeated clicks/retries preserve the
 Admin approves/rejects student attendance and Tutor attendance within their office. Tutor arrivals remain self-clocked using database time; student daily attendance remains entered by Admin. **Admin → Tutor approvals** shows only Tutors, while **Student attendance** includes student review controls. Super Admin approves/rejects Admin attendance in **Staff attendance**; Tutor decisions there show the Admin review status. Nobody can approve themselves.
 
 Approval is separate from calculated presence/lateness and does not change recorded times. Rejection requires a reason. Any later arrival/departure/correction/excuse change resets approval to pending, preserving previous decisions in immutable audit events. Staff see approval status and review reasons in their own history. The fourth migration includes both self-clock and approval storage/functions; it must be applied after the first three migrations.
+
+## Inactivity, tab behaviour and password navigation
+
+Normal sessions use a server-signed ten-minute idle cookie bound to the login ID, user and revocation version. Protected pages and actions reject expired/missing proofs; background page reads do not renew them. User activity sends updates at most approximately every 30 seconds, with a separate distributed limit of six updates per user per minute. Login limits remain eight attempts per account and twenty per IP within fifteen minutes.
+
+Without Remember me, a tab-only sessionStorage marker gates the portal before showing its content. A fresh tab without that marker clears the browser session and asks for credentials. Browser restore/duplicate features may preserve sessionStorage; tab closure itself is not a reliable server event. The signed idle expiry remains the server authority even if browser timers are suspended or local storage is modified. Older open tabs cannot clear a newer login's signed session. Remember me bypasses the idle/tab check and persists for **24 hours**, without extending that absolute expiry on activity. Rolling out this cookie format requires existing users to sign in once again.
+
+Change password is available in each role's sidebar/mobile menu instead of the top navigation bar.
+
+## Branding and dashboard charts
+
+The supplied SMI crest is served from `public/brand/smi-logo.jpeg`. Navy/orange tokens in `app/globals.css` theme the login, role sidebars, mobile navigation and charts. Charts are scoped through existing authenticated services and display stored data, with empty states and accessible data tables. Student registrations represent current accounts by creation month, not reconstructed historical class enrollment. Income charts show confirmed manual records, using earned date where available.
